@@ -45,7 +45,7 @@ export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
       const rx = sx * w / 2 - 15
       const ry = sy * h * 0.3 - 26
       g.fillStyle(0x111111, 1).fillRoundedRect(rx, ry, 30, 52, 10)
-      g.fillStyle(aro, 1).fillRoundedRect(rx + 9, ry + 14, 12, 24, 5)
+      g.fillStyle(aro, 1).fillRoundedRect(rx + 6, ry + 9, 18, 34, 6)
     }
   }
 

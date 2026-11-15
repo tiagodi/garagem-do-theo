@@ -1,6 +1,6 @@
 // Adversários "elásticos": ficam perto do Theo e freiam na reta final, para ele quase sempre ganhar.
-export const COMPRIMENTO_PISTA = 12000
-export const VELOCIDADE_BASE = 220
+export const COMPRIMENTO_PISTA = 15000
+export const VELOCIDADE_BASE = 330
 const CHANCE_OUSADO = 0.15 // ousado não freia no fim: o Theo chega em 2º
 
 export function criarAdversarios (rng = Math.random) {

@@ -20,22 +20,22 @@ export const CATALOGO = [
   item('cor', 'dourado', 0xFFC107),
 
   item('aerofolio', 'nenhum', 'nenhum', true),
-  item('aerofolio', 'baixo', 'baixo'),
+  item('aerofolio', 'baixo', 'baixo', true),
   item('aerofolio', 'alto', 'alto'),
   item('aerofolio', 'duplo', 'duplo'),
 
   item('teto', 'nenhum', 'nenhum', true),
   item('teto', 'sirene', 'sirene'),
   item('teto', 'bagageiro', 'bagageiro'),
-  item('teto', 'faixa', 'faixa'),
+  item('teto', 'faixa', 'faixa', true),
 
   item('rodas', 'nenhum', 0x9E9E9E, true),
-  item('rodas', 'branco', 0xFFFFFF),
+  item('rodas', 'branco', 0xFFFFFF, true),
   item('rodas', 'amarelo', 0xFDD835),
   item('rodas', 'vermelho', 0xE53935),
 
   item('escapamento', 'laranja', 0xFF6D00, true),
-  item('escapamento', 'azul', 0x2979FF),
+  item('escapamento', 'azul', 0x2979FF, true),
   item('escapamento', 'verde', 0x00E676),
   item('escapamento', 'roxo', 0xD500F9),
 

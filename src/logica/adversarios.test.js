@@ -43,3 +43,12 @@ describe('simularCorrida', () => {
     expect(vitorias).toBeLessThanOrEqual(0.95)
   })
 })
+
+describe('ritmo da corrida', () => {
+  it('carro 50% mais rápido e corrida de 40 a 50 s', () => {
+    expect(VELOCIDADE_BASE).toBe(330)
+    const segundos = COMPRIMENTO_PISTA / VELOCIDADE_BASE
+    expect(segundos).toBeGreaterThanOrEqual(40)
+    expect(segundos).toBeLessThanOrEqual(50)
+  })
+})

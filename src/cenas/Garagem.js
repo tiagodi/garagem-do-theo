@@ -9,7 +9,10 @@ import { ESTRELAS_POR_BARRA } from '../logica/presentes.js'
 
 const CENTRO_CARRO = { x: 360, y: 420 }
 const ESCALA_CARRO = 1.6
-const TIPOS_PECA = [['aerofolio', '✈️'], ['teto', '🚨'], ['rodas', '🛞'], ['escapamento', '🔥']]
+// Cada tipo de peça aparece como um carrinho mostrando uma peça daquele tipo (emoji não explicava).
+const TIPOS_PECA = [['aerofolio', 'aerofolio-alto'], ['teto', 'teto-sirene'], ['rodas', 'rodas-amarelo'], ['escapamento', 'escapamento-azul']]
+// Carro cinza neutro: só a peça de exemplo chama atenção.
+const VISUAL_EXEMPLO = { cor: 0xB0BEC5, aerofolio: 'aerofolio-nenhum', teto: 'teto-nenhum', rodas: 'rodas-nenhum', escapamento: 'escapamento-laranja', adesivos: [] }
 const TIPOS_DA_ABA = { carro: ['carro'], cor: ['cor'], peca: TIPOS_PECA.map(([t]) => t), adesivo: ['adesivo'] }
 
 export default class Garagem extends Phaser.Scene {
@@ -134,9 +137,11 @@ export default class Garagem extends Phaser.Scene {
         this.add.circle(0, 0, 40, item.valor).setStrokeStyle(4, 0x000000, 0.25),
       v.cor === item.valor, () => this.mudarVisual({ cor: item.valor })))
     } else if (aba === 'peca') {
-      TIPOS_PECA.forEach(([tipo, emoji], i) => this.opcao(i + 1, () =>
-        this.add.text(0, 0, emoji, { fontSize: '64px', fontFamily: FONTE }).setOrigin(0.5),
-      this.tipoPeca === tipo, () => { this.tipoPeca = tipo; this.mostrarAba('peca') }))
+      TIPOS_PECA.forEach(([tipo, exemplo], i) => this.opcao(i + 1, () => {
+        const c = criarCarro(this, 0, tipo === 'escapamento' ? -10 : 0, 'carrinho', { ...VISUAL_EXEMPLO, [tipo]: exemplo }, 0.34)
+        if (tipo === 'escapamento') c.fogo.setVisible(true)
+        return c
+      }, this.tipoPeca === tipo, () => { this.tipoPeca = tipo; this.mostrarAba('peca') }))
       this.ganhos(this.tipoPeca).forEach((item, i) => this.opcao(i + 6, () => {
         const c = criarCarro(this, 0, item.tipo === 'escapamento' ? -10 : 0, this.modeloDe(this.estado.carroAtual), { ...v, [item.tipo]: item.id }, 0.34)
         if (item.tipo === 'escapamento') c.fogo.setVisible(true)

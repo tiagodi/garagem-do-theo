@@ -91,3 +91,10 @@ describe('visualDe com save incompleto', () => {
     expect(visualDe(estado, 'carro-carrinho').adesivos).toEqual([])
   })
 })
+
+describe('peças iniciais', () => {
+  it('cada tipo de peça começa com uma opção além de "nenhum"', () => {
+    const { ganhos } = ESTADO_INICIAL()
+    for (const id of ['aerofolio-baixo', 'teto-faixa', 'rodas-branco', 'escapamento-azul']) expect(ganhos).toContain(id)
+  })
+})
