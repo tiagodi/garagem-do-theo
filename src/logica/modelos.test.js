@@ -35,3 +35,14 @@ describe('MODELOS', () => {
     expect(medidas('foguete')).toEqual(medidas('carrinho'))
   })
 })
+
+describe('spriteDisponivel', () => {
+  it('só usa o sprite com as duas camadas carregadas', async () => {
+    const { spriteDisponivel } = await import('./modelos.js')
+    const tudo = () => true
+    expect(spriteDisponivel('carrinho', tudo)).toBe(2)
+    expect(spriteDisponivel('carrinho', chave => chave !== 'detalhe_2')).toBeNull()
+    expect(spriteDisponivel('carrinho', chave => chave !== 'corpo_2')).toBeNull()
+    expect(spriteDisponivel('onibus', tudo)).toBeNull()
+  })
+})

@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { porId } from './logica/catalogo.js'
 import { FONTE } from './ui.js'
-import { MODELOS, medidas } from './logica/modelos.js'
+import { MODELOS, medidas, spriteDisponivel } from './logica/modelos.js'
 
 const VIDRO = 0xBBDEFB
 const ESCURO = 0x263238
@@ -15,7 +15,8 @@ function valor (id, padrao) {
 // Desenha o carro num Container. Expõe container.fogo (nitro), container.dims ({w, h}) e container.adesivos (textos).
 export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
   if (!MODELOS[modelo]) modelo = 'carrinho'
-  const { w, h, raio, sprite } = medidas(modelo)
+  const { w, h, raio } = medidas(modelo)
+  const sprite = spriteDisponivel(modelo, chave => cena.textures.exists(chave))
   const c = cena.add.container(x, y)
   const g = cena.add.graphics()
   c.add(g)
@@ -44,7 +45,7 @@ export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
   }
 
   // Carroceria: sprite do Kenney pintado com tint; sem a textura (ou ônibus), desenho em código.
-  const comSprite = sprite && cena.textures.exists(`corpo_${sprite}`)
+  const comSprite = sprite !== null
   if (comSprite) {
     c.add(cena.add.image(0, 0, `corpo_${sprite}`).setDisplaySize(w, h).setTint(visual.cor))
     c.add(cena.add.image(0, 0, `detalhe_${sprite}`).setDisplaySize(w, h))

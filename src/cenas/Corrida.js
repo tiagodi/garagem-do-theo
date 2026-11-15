@@ -32,7 +32,7 @@ export default class Corrida extends Phaser.Scene {
     this.adversarios = criarAdversarios().map((a, i) => ({
       ...a,
       carro: this.textures.exists(`adv_${i + 1}`)
-        ? this.add.image(FAIXAS_X[a.faixa], 0, `adv_${i + 1}`).setDisplaySize(96, 96 * 131 / 71)
+        ? this.add.image(FAIXAS_X[a.faixa], 0, `adv_${i + 1}`).setScale(96 / 71) // largura dos PNGs: ~71 px; altura própria de cada um
         : criarCarro(this, FAIXAS_X[a.faixa], 0, 'carrinho', visualDe({ porCarro: {} }, ''), 0.8)
     }))
 

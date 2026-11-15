@@ -13,3 +13,9 @@ export const MODELOS = {
 }
 
 export const medidas = modelo => MODELOS[modelo] ?? MODELOS.carrinho
+
+// N do sprite só se as duas camadas carregaram; senão null (desenho em código). existe(chave) → boolean.
+export function spriteDisponivel (modelo, existe) {
+  const n = medidas(modelo).sprite
+  return n && existe(`corpo_${n}`) && existe(`detalhe_${n}`) ? n : null
+}
