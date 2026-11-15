@@ -15,10 +15,5 @@
 <body>
   <div id="jogo"></div>
   <script type="module" src="./src/main.js"></script>
-  <script>
-    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-      navigator.serviceWorker.register('./sw.js')
-    }
-  </script>
 </body>
 </html>
