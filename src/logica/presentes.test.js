@@ -13,6 +13,10 @@ describe('sortearPresente', () => {
   it('sorteio baixo com carro faltando → carro', () => {
     expect(sortearPresente(semItens('carro-onibus', 'cor-roxo'), () => 0.1).id).toBe('carro-onibus')
   })
+  it('chance de carro é 40%', () => {
+    expect(sortearPresente(semItens('carro-onibus', 'cor-roxo'), () => 0.35).id).toBe('carro-onibus')
+    expect(sortearPresente(semItens('carro-onibus', 'cor-roxo'), () => 0.45).id).toBe('cor-roxo')
+  })
   it('sorteio alto → não-carro', () => {
     expect(sortearPresente(semItens('carro-onibus', 'cor-roxo'), () => 0.9).id).toBe('cor-roxo')
   })

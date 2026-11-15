@@ -16,8 +16,17 @@ const VISUAL_PADRAO = {
   adesivos: []
 }
 
+// Cada modelo nasce com a sua cor: carro novo não pode parecer igual ao anterior.
+const COR_DO_MODELO = {
+  'carro-carrinho': 0xE53935,
+  'carro-esportivo': 0xFDD835,
+  'carro-caminhonete': 0x43A047,
+  'carro-onibus': 0xFFA000,
+  'carro-policia': 0x263238
+}
+
 export function visualDe (estado, carroId) {
-  const v = { ...VISUAL_PADRAO, ...estado.porCarro[carroId] }
+  const v = { ...VISUAL_PADRAO, cor: COR_DO_MODELO[carroId] ?? VISUAL_PADRAO.cor, ...estado.porCarro[carroId] }
   if (!Array.isArray(v.adesivos)) v.adesivos = []
   return v
 }

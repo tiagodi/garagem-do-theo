@@ -1,7 +1,7 @@
 import { CATALOGO } from './catalogo.js'
 
 export const ESTRELAS_POR_BARRA = 20
-const CHANCE_CARRO = 0.25
+const CHANCE_CARRO = 0.4
 
 const escolher = (lista, rng) => lista[Math.floor(rng() * lista.length)]
 

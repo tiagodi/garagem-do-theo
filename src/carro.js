@@ -1,3 +1,4 @@
+import Phaser from 'phaser'
 import { porId } from './logica/catalogo.js'
 import { FONTE } from './ui.js'
 
@@ -49,9 +50,15 @@ export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
     }
   }
 
-  // Carroceria com contorno.
-  g.fillStyle(visual.cor, 1).fillRoundedRect(-w / 2, -h / 2, w, h, raio)
-  g.lineStyle(6, 0x000000, 0.25).strokeRoundedRect(-w / 2, -h / 2, w, h, raio)
+  // Carroceria com contorno. Esportivo tem bico em cunha para não parecer o carrinho.
+  g.fillStyle(visual.cor, 1).lineStyle(6, 0x000000, 0.25)
+  if (modelo === 'esportivo') {
+    const bico = [[-0.2, -0.5], [0.2, -0.5], [0.5, -0.15], [0.5, 0.42], [0.4, 0.5], [-0.4, 0.5], [-0.5, 0.42], [-0.5, -0.15]]
+      .map(([x, y]) => new Phaser.Math.Vector2(x * w, y * h))
+    g.fillPoints(bico, true).strokePoints(bico, true)
+  } else {
+    g.fillRoundedRect(-w / 2, -h / 2, w, h, raio).strokeRoundedRect(-w / 2, -h / 2, w, h, raio)
+  }
 
   // Detalhes de cada modelo.
   if (modelo === 'onibus') {
@@ -60,17 +67,23 @@ export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
     g.fillStyle(VIDRO, 1).fillRoundedRect(w / 2 - 24, -h / 2 + 64, 16, h - 90, 6)
   } else if (modelo === 'caminhonete') {
     g.fillStyle(VIDRO, 1).fillRoundedRect(-w * 0.36, -h * 0.3, w * 0.72, h * 0.13, 12)
-    g.fillStyle(0x000000, 0.2).fillRoundedRect(-w * 0.38, h * 0.02, w * 0.76, h * 0.42, 10)
+    // Caçamba aberta bem marcada, com tábuas.
+    g.fillStyle(0x5D4037, 1).fillRoundedRect(-w * 0.38, h * 0.0, w * 0.76, h * 0.44, 8)
+    g.lineStyle(4, 0x3E2723, 1)
+    for (let i = 1; i < 4; i++) g.lineBetween(-w * 0.38, h * 0.11 * i, w * 0.38, h * 0.11 * i)
+    g.lineStyle(6, 0x000000, 0.35).strokeRoundedRect(-w * 0.38, h * 0.0, w * 0.76, h * 0.44, 8)
   } else {
     const baixo = modelo === 'esportivo'
     g.fillStyle(VIDRO, 1).fillRoundedRect(-w * 0.36, -h * (baixo ? 0.22 : 0.27), w * 0.72, h * 0.15, 16)
     g.fillStyle(VIDRO, 1).fillRoundedRect(-w * 0.32, h * 0.2, w * 0.64, h * 0.1, 12)
   }
+  let teto = valor(visual.teto, 'nenhum')
   if (modelo === 'policia') {
     g.fillStyle(0xFFFFFF, 1).fillRect(-w / 2 + 4, -h * 0.06, w - 8, h * 0.14)
+    if (teto === 'nenhum') teto = 'sirene' // viatura sempre tem sirene, salvo outra peça escolhida
   }
 
-  desenharTeto(g, valor(visual.teto, 'nenhum'), w, h)
+  desenharTeto(g, teto, w, h)
   desenharAerofolio(g, valor(visual.aerofolio, 'nenhum'), w, h)
 
   c.adesivos = visual.adesivos.map(a => {

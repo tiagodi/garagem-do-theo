@@ -50,7 +50,7 @@ Início → Garagem → Corrida → Lava-jato → Presente → Garagem
 
 - 1 presente garantido por corrida.
 - As estrelas enchem uma barra, e cada barra cheia dá 1 presente extra.
-- O presente é sorteado entre os itens ainda não ganhos. Cerca de 1 a cada 4 presentes é um carro, enquanto houver carros a liberar.
+- O presente é sorteado entre os itens ainda não ganhos. Cerca de 2 a cada 5 presentes são um carro, enquanto houver carros a liberar. Cada modelo nasce com cor e formato próprios.
 - Com tudo liberado, o presente vira confete e festa, sem item.
 - Tudo é salvo no `localStorage`: itens ganhos, carro atual, cor, peças, adesivos por carro e a barra de estrelas. Se o dado salvo estiver corrompido ou faltar, o jogo volta ao estado inicial sem quebrar.
 

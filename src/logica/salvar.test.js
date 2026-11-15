@@ -98,3 +98,16 @@ describe('peças iniciais', () => {
     for (const id of ['aerofolio-baixo', 'teto-faixa', 'rodas-branco', 'escapamento-azul']) expect(ganhos).toContain(id)
   })
 })
+
+describe('cor padrão por modelo', () => {
+  it('cada carro nasce com uma cor diferente', () => {
+    const cores = ['carro-carrinho', 'carro-esportivo', 'carro-caminhonete', 'carro-onibus', 'carro-policia']
+      .map(id => visualDe(ESTADO_INICIAL(), id).cor)
+    expect(new Set(cores).size).toBe(5)
+    expect(cores[0]).toBe(0xE53935)
+  })
+  it('cor salva vence a cor padrão do modelo', () => {
+    const estado = { ...ESTADO_INICIAL(), porCarro: { 'carro-esportivo': { cor: 0x1E88E5 } } }
+    expect(visualDe(estado, 'carro-esportivo').cor).toBe(0x1E88E5)
+  })
+})
