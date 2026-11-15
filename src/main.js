@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import Carregar from './cenas/Carregar.js'
 import Inicio from './cenas/Inicio.js'
 import Garagem from './cenas/Garagem.js'
 import Corrida from './cenas/Corrida.js'
@@ -11,7 +12,7 @@ const jogo = new Phaser.Game({
   backgroundColor: '#87CEEB',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 720, height: 1280 },
   input: { activePointers: 2 },
-  scene: [Inicio, Garagem, Corrida, LavaJato, Presente]
+  scene: [Carregar, Inicio, Garagem, Corrida, LavaJato, Presente]
 })
 
 // Só em desenvolvimento: deixa o jogo acessível para testar pelo console.

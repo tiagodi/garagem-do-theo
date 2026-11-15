@@ -1,20 +1,12 @@
 import Phaser from 'phaser'
 import { porId } from './logica/catalogo.js'
 import { FONTE } from './ui.js'
-
-// Medidas de cada modelo visto de cima (frente para cima), em px na escala 1.
-const MODELOS = {
-  carrinho: { w: 120, h: 200, raio: 40 },
-  esportivo: { w: 130, h: 190, raio: 55 },
-  caminhonete: { w: 124, h: 220, raio: 30 },
-  onibus: { w: 140, h: 260, raio: 22 },
-  policia: { w: 120, h: 200, raio: 40 }
-}
+import { MODELOS, medidas } from './logica/modelos.js'
 
 const VIDRO = 0xBBDEFB
 const ESCURO = 0x263238
 
-export const medidas = modelo => MODELOS[modelo] ?? MODELOS.carrinho
+export { medidas }
 
 function valor (id, padrao) {
   return porId(id)?.valor ?? padrao
@@ -22,7 +14,8 @@ function valor (id, padrao) {
 
 // Desenha o carro num Container. Expõe container.fogo (nitro), container.dims ({w, h}) e container.adesivos (textos).
 export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
-  const { w, h, raio } = medidas(modelo)
+  if (!MODELOS[modelo]) modelo = 'carrinho'
+  const { w, h, raio, sprite } = medidas(modelo)
   const c = cena.add.container(x, y)
   const g = cena.add.graphics()
   c.add(g)
@@ -50,8 +43,44 @@ export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
     }
   }
 
-  // Carroceria com contorno. Esportivo tem bico em cunha para não parecer o carrinho.
-  g.fillStyle(visual.cor, 1).lineStyle(6, 0x000000, 0.25)
+  // Carroceria: sprite do Kenney pintado com tint; sem a textura (ou ônibus), desenho em código.
+  const comSprite = sprite && cena.textures.exists(`corpo_${sprite}`)
+  if (comSprite) {
+    c.add(cena.add.image(0, 0, `corpo_${sprite}`).setDisplaySize(w, h).setTint(visual.cor))
+    c.add(cena.add.image(0, 0, `detalhe_${sprite}`).setDisplaySize(w, h))
+  } else {
+    desenharCorpo(g, modelo, visual.cor, w, h, raio)
+  }
+
+  // Peças por cima da carroceria.
+  const pecas = cena.add.graphics()
+  c.add(pecas)
+  let teto = valor(visual.teto, 'nenhum')
+  if (modelo === 'policia') {
+    if (!comSprite) pecas.fillStyle(0xFFFFFF, 1).fillRect(-w / 2 + 4, -h * 0.06, w - 8, h * 0.14)
+    if (teto === 'nenhum') teto = 'sirene' // viatura sempre tem sirene, salvo outra peça escolhida
+  }
+
+  desenharTeto(pecas, teto, w, h)
+  desenharAerofolio(pecas, valor(visual.aerofolio, 'nenhum'), w, h)
+
+  c.adesivos = visual.adesivos.map(a => {
+    const t = cena.add.text(a.x * w / 2, a.y * h / 2, a.emoji, { fontSize: '40px', fontFamily: FONTE }).setOrigin(0.5)
+    c.add(t)
+    return t
+  })
+
+  c.fogo = fogo
+  c.dims = { w, h }
+  c.setSize(w + 30, h)
+  c.setScale(escala)
+  return c
+}
+
+// Carroceria desenhada em código: ônibus e reserva se o sprite não carregar.
+function desenharCorpo (g, modelo, cor, w, h, raio) {
+  // Ônibus imita o estilo do Kenney: contorno grosso escuro.
+  g.fillStyle(cor, 1).lineStyle(modelo === 'onibus' ? 8 : 6, 0x000000, modelo === 'onibus' ? 0.45 : 0.25)
   if (modelo === 'esportivo') {
     const bico = [[-0.2, -0.5], [0.2, -0.5], [0.5, -0.15], [0.5, 0.42], [0.4, 0.5], [-0.4, 0.5], [-0.5, 0.42], [-0.5, -0.15]]
       .map(([x, y]) => new Phaser.Math.Vector2(x * w, y * h))
@@ -65,6 +94,7 @@ export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
     g.fillStyle(VIDRO, 1).fillRoundedRect(-w * 0.4, -h / 2 + 14, w * 0.8, 34, 10)
     g.fillStyle(VIDRO, 1).fillRoundedRect(-w / 2 + 8, -h / 2 + 64, 16, h - 90, 6)
     g.fillStyle(VIDRO, 1).fillRoundedRect(w / 2 - 24, -h / 2 + 64, 16, h - 90, 6)
+    g.fillStyle(0xFFFFFF, 0.7).fillEllipse(-w * 0.3, -h / 2 + 8, 24, 8)
   } else if (modelo === 'caminhonete') {
     g.fillStyle(VIDRO, 1).fillRoundedRect(-w * 0.36, -h * 0.3, w * 0.72, h * 0.13, 12)
     // Caçamba aberta bem marcada, com tábuas.
@@ -77,26 +107,6 @@ export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
     g.fillStyle(VIDRO, 1).fillRoundedRect(-w * 0.36, -h * (baixo ? 0.22 : 0.27), w * 0.72, h * 0.15, 16)
     g.fillStyle(VIDRO, 1).fillRoundedRect(-w * 0.32, h * 0.2, w * 0.64, h * 0.1, 12)
   }
-  let teto = valor(visual.teto, 'nenhum')
-  if (modelo === 'policia') {
-    g.fillStyle(0xFFFFFF, 1).fillRect(-w / 2 + 4, -h * 0.06, w - 8, h * 0.14)
-    if (teto === 'nenhum') teto = 'sirene' // viatura sempre tem sirene, salvo outra peça escolhida
-  }
-
-  desenharTeto(g, teto, w, h)
-  desenharAerofolio(g, valor(visual.aerofolio, 'nenhum'), w, h)
-
-  c.adesivos = visual.adesivos.map(a => {
-    const t = cena.add.text(a.x * w / 2, a.y * h / 2, a.emoji, { fontSize: '40px', fontFamily: FONTE }).setOrigin(0.5)
-    c.add(t)
-    return t
-  })
-
-  c.fogo = fogo
-  c.dims = { w, h }
-  c.setSize(w + 30, h)
-  c.setScale(escala)
-  return c
 }
 
 function desenharTeto (g, teto, w, h) {
