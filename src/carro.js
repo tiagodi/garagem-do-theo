@@ -19,7 +19,7 @@ function valor (id, padrao) {
   return porId(id)?.valor ?? padrao
 }
 
-// Desenha o carro num Container. Expõe container.fogo (nitro) e container.dims ({w, h}).
+// Desenha o carro num Container. Expõe container.fogo (nitro), container.dims ({w, h}) e container.adesivos (textos).
 export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
   const { w, h, raio } = medidas(modelo)
   const c = cena.add.container(x, y)
@@ -73,9 +73,11 @@ export function criarCarro (cena, x, y, modelo, visual, escala = 1) {
   desenharTeto(g, valor(visual.teto, 'nenhum'), w, h)
   desenharAerofolio(g, valor(visual.aerofolio, 'nenhum'), w, h)
 
-  for (const a of visual.adesivos) {
-    c.add(cena.add.text(a.x * w / 2, a.y * h / 2, a.emoji, { fontSize: '40px', fontFamily: FONTE }).setOrigin(0.5))
-  }
+  c.adesivos = visual.adesivos.map(a => {
+    const t = cena.add.text(a.x * w / 2, a.y * h / 2, a.emoji, { fontSize: '40px', fontFamily: FONTE }).setOrigin(0.5)
+    c.add(t)
+    return t
+  })
 
   c.fogo = fogo
   c.dims = { w, h }

@@ -4,6 +4,7 @@ import { tocar } from '../sons.js'
 import { criarCarro } from '../carro.js'
 import { CATALOGO, porId } from '../logica/catalogo.js'
 import { carregar, gravar, visualDe } from '../logica/salvar.js'
+import { colarAdesivo, moverAdesivo } from '../logica/adesivos.js'
 
 const CENTRO_CARRO = { x: 360, y: 420 }
 const ESCALA_CARRO = 1.6
@@ -31,6 +32,9 @@ export default class Garagem extends Phaser.Scene {
       this.scene.start('Corrida')
     }, 110)
 
+    this.input.on('pointermove', p => this.arrasto?.texto.setPosition(p.x, p.y))
+    this.input.on('pointerup', p => this.soltarAdesivo(p))
+
     this.mostrarAba('carro')
   }
 
@@ -43,6 +47,33 @@ export default class Garagem extends Phaser.Scene {
   desenharCarro () {
     this.carro?.destroy()
     this.carro = criarCarro(this, CENTRO_CARRO.x, CENTRO_CARRO.y, this.modeloDe(this.estado.carroAtual), this.visual, ESCALA_CARRO)
+    if (this.aba !== 'adesivo') return
+    // Adesivo já colado: arrastar move; arrastar para fora do carro tira.
+    this.carro.adesivos.forEach((t, i) => {
+      t.setInteractive(new Phaser.Geom.Rectangle(-20, -20, t.width + 40, t.height + 40), Phaser.Geom.Rectangle.Contains)
+      t.on('pointerdown', () => { t.setVisible(false); this.pegarAdesivo(t.text, i) })
+    })
+  }
+
+  pegarAdesivo (emoji, indice) {
+    const p = this.input.activePointer
+    tocar('toque')
+    const texto = this.add.text(p.x, p.y, emoji, { fontSize: `${40 * ESCALA_CARRO}px`, fontFamily: FONTE }).setOrigin(0.5).setDepth(10)
+    this.arrasto = { emoji, indice, texto }
+  }
+
+  soltarAdesivo (p) {
+    if (!this.arrasto) return
+    const { emoji, indice, texto } = this.arrasto
+    this.arrasto = null
+    texto.destroy()
+    const { w, h } = this.carro.dims
+    const x = (p.x - CENTRO_CARRO.x) / (ESCALA_CARRO * w / 2)
+    const y = (p.y - CENTRO_CARRO.y) / (ESCALA_CARRO * h / 2)
+    const novo = indice === null ? colarAdesivo(this.visual, emoji, x, y) : moverAdesivo(this.visual, indice, x, y)
+    if (novo !== this.visual) tocar('estrela')
+    this.estado.porCarro[this.estado.carroAtual] = novo
+    this.salvarERedesenhar()
   }
 
   mudarVisual (mudanca) {
@@ -58,7 +89,9 @@ export default class Garagem extends Phaser.Scene {
   }
 
   mostrarAba (aba) {
+    const trocouAba = this.aba !== aba
     this.aba = aba
+    if (trocouAba) this.desenharCarro()
     this.opcoes.forEach(o => o.destroy())
     this.opcoes = []
     const v = this.visual
@@ -80,6 +113,10 @@ export default class Garagem extends Phaser.Scene {
         if (item.tipo === 'escapamento') c.fogo.setVisible(true)
         return c
       }, v[item.tipo] === item.id, () => this.mudarVisual({ [item.tipo]: item.id })))
+    } else if (aba === 'adesivo') {
+      this.ganhos('adesivo').forEach((item, i) => this.opcao(i, () =>
+        this.add.text(0, 0, item.valor, { fontSize: '64px', fontFamily: FONTE }).setOrigin(0.5),
+      false, () => this.pegarAdesivo(item.valor, null)))
     }
   }
 
