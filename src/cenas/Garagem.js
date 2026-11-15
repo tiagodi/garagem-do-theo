@@ -50,6 +50,8 @@ export default class Garagem extends Phaser.Scene {
 
     this.input.on('pointermove', p => this.arrasto?.texto.setPosition(p.x, p.y))
     this.input.on('pointerup', p => this.soltarAdesivo(p))
+    // Soltar na faixa fora do jogo (barras do Scale.FIT) chega como pointerupoutside.
+    this.input.on('pointerupoutside', p => this.soltarAdesivo(p))
 
     this.mostrarAba('carro')
   }
@@ -76,6 +78,7 @@ export default class Garagem extends Phaser.Scene {
   }
 
   pegarAdesivo (emoji, indice) {
+    if (this.arrasto) return // segundo dedo enquanto um adesivo já está na mão
     const p = this.input.activePointer
     tocar('toque')
     const texto = this.add.text(p.x, p.y, emoji, { fontSize: `${40 * ESCALA_CARRO}px`, fontFamily: FONTE }).setOrigin(0.5).setDepth(10)

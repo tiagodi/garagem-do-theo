@@ -3,7 +3,7 @@
 const CACHE = 'garagem-' + (self.VERSAO || 'dev')
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html', ...(self.LISTA || [])])))
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll([...new Set(['./', './index.html', ...(self.LISTA || [])])])))
   self.skipWaiting()
 })
 

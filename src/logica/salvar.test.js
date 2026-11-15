@@ -63,3 +63,31 @@ describe('visualDe', () => {
     expect(v).toEqual({ cor: 0xE53935, aerofolio: 'aerofolio-nenhum', teto: 'teto-nenhum', rodas: 'rodas-nenhum', escapamento: 'escapamento-laranja', adesivos: [] })
   })
 })
+
+describe('armazenamento bloqueado pelo navegador', () => {
+  it('carregar e gravar sem argumento não lançam quando ler localStorage lança', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, get () { throw new Error('SecurityError') } })
+    try {
+      expect(carregar()).toEqual(ESTADO_INICIAL())
+      expect(() => gravar(ESTADO_INICIAL())).not.toThrow()
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'localStorage', original)
+      else delete globalThis.localStorage
+    }
+  })
+})
+
+describe('visualDe com save incompleto', () => {
+  it('completa campos que faltam com o padrão', () => {
+    const estado = { ...ESTADO_INICIAL(), porCarro: { 'carro-carrinho': { cor: 0x1E88E5 } } }
+    const v = visualDe(estado, 'carro-carrinho')
+    expect(v.cor).toBe(0x1E88E5)
+    expect(v.adesivos).toEqual([])
+    expect(v.teto).toBe('teto-nenhum')
+  })
+  it('adesivos que não são lista viram lista vazia', () => {
+    const estado = { ...ESTADO_INICIAL(), porCarro: { 'carro-carrinho': { adesivos: 'x' } } }
+    expect(visualDe(estado, 'carro-carrinho').adesivos).toEqual([])
+  })
+})

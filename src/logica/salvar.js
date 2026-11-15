@@ -7,22 +7,27 @@ export function ESTADO_INICIAL () {
   return { ganhos: [...IDS_INICIAIS], vistos: [...IDS_INICIAIS], carroAtual: 'carro-carrinho', porCarro: {}, estrelas: 0, ultimaCorrida: 0 }
 }
 
-export function visualDe (estado, carroId) {
-  return estado.porCarro[carroId] ?? {
-    cor: 0xE53935,
-    aerofolio: 'aerofolio-nenhum',
-    teto: 'teto-nenhum',
-    rodas: 'rodas-nenhum',
-    escapamento: 'escapamento-laranja',
-    adesivos: []
-  }
+const VISUAL_PADRAO = {
+  cor: 0xE53935,
+  aerofolio: 'aerofolio-nenhum',
+  teto: 'teto-nenhum',
+  rodas: 'rodas-nenhum',
+  escapamento: 'escapamento-laranja',
+  adesivos: []
 }
 
-export function carregar (storage = globalThis.localStorage) {
+export function visualDe (estado, carroId) {
+  const v = { ...VISUAL_PADRAO, ...estado.porCarro[carroId] }
+  if (!Array.isArray(v.adesivos)) v.adesivos = []
+  return v
+}
+
+// Ler globalThis.localStorage já lança quando o navegador bloqueia dados do site: fica dentro do try.
+export function carregar (storage) {
   const inicial = ESTADO_INICIAL()
   let salvo
   try {
-    salvo = JSON.parse(storage.getItem(CHAVE))
+    salvo = JSON.parse((storage ?? globalThis.localStorage).getItem(CHAVE))
   } catch {
     return inicial
   }
@@ -39,9 +44,9 @@ export function carregar (storage = globalThis.localStorage) {
   return estado
 }
 
-export function gravar (estado, storage = globalThis.localStorage) {
+export function gravar (estado, storage) {
   try {
-    storage.setItem(CHAVE, JSON.stringify(estado))
+    (storage ?? globalThis.localStorage).setItem(CHAVE, JSON.stringify(estado))
   } catch {
     // Sem espaço ou bloqueado: o jogo continua, só não lembra.
   }
