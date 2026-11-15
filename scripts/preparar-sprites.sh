@@ -29,7 +29,7 @@ cp "$ORIGEM/PNG/Cars/car_yellow_5.png" "$DESTINO/adv_3.png"
 
 # Objetos da pista e do cenário.
 O="$ORIGEM/PNG/Objects"
-cp "$O/cone_straight.png" "$DESTINO/cone.png"
+cp "$O/cone_down.png" "$DESTINO/cone.png" # deitado: de cima, o cone em pé vira um anel
 cp "$O/oil.png" "$DESTINO/oleo.png"
 cp "$O/tires_red.png" "$DESTINO/pneus.png"
 cp "$O/arrow_yellow.png" "$DESTINO/seta.png"

@@ -5,12 +5,12 @@ import { criarCarro } from '../carro.js'
 import { porId } from '../logica/catalogo.js'
 import { carregar, visualDe } from '../logica/salvar.js'
 import { criarAdversarios, atualizarAdversario, VELOCIDADE_BASE, COMPRIMENTO_PISTA } from '../logica/adversarios.js'
+import { gerarObjetos, gerarCenario } from '../logica/pista.js'
 
 const FAIXAS_X = [200, 360, 520]
 const Y_THEO = 1000
 const NITRO = { fator: 1.8, ms: 3000 }
 const BATIDA = { fator: 0.5, ms: 1000 }
-const CORES_ADVERSARIOS = [0x7E57C2, 0x26A69A, 0xFF7043]
 const MEDALHAS = ['🥇', '🥈', '🥉', '🏅']
 
 export default class Corrida extends Phaser.Scene {
@@ -25,12 +25,15 @@ export default class Corrida extends Phaser.Scene {
     this.terminou = false
 
     this.criarPista()
-    this.objetos = this.gerarObjetos()
+    this.cenario = gerarCenario(Math.random).map(c => ({ ...c, sprite: this.criarEnfeite(c) }))
+    this.objetos = gerarObjetos(Math.random).map(o => ({ ...o, sprite: this.criarObjeto(o), pego: false }))
     this.chegada = this.add.tileSprite(360, 0, 480, 60, 'quadriculado')
 
     this.adversarios = criarAdversarios().map((a, i) => ({
       ...a,
-      carro: criarCarro(this, FAIXAS_X[a.faixa], 0, i === 1 ? 'esportivo' : 'carrinho', { ...visualDe({ porCarro: {} }, ''), cor: CORES_ADVERSARIOS[i] }, 0.8)
+      carro: this.textures.exists(`adv_${i + 1}`)
+        ? this.add.image(FAIXAS_X[a.faixa], 0, `adv_${i + 1}`).setDisplaySize(96, 96 * 131 / 71)
+        : criarCarro(this, FAIXAS_X[a.faixa], 0, 'carrinho', visualDe({ porCarro: {} }, ''), 0.8)
     }))
 
     const estado = carregar()
@@ -54,7 +57,6 @@ export default class Corrida extends Phaser.Scene {
     if (!this.textures.exists('pista')) {
       const g = this.make.graphics({ add: false })
       g.fillStyle(0x66BB6A).fillRect(0, 0, 720, 320)
-      g.fillStyle(0x43A047).fillCircle(50, 60, 22).fillCircle(670, 220, 26).fillCircle(80, 250, 16)
       g.fillStyle(0x616161).fillRect(120, 0, 480, 320)
       for (let y = 0; y < 320; y += 80) {
         g.fillStyle(0xE53935).fillRect(108, y, 12, 40).fillRect(600, y, 12, 40)
@@ -72,24 +74,29 @@ export default class Corrida extends Phaser.Scene {
     this.pista = this.add.tileSprite(360, 640, 720, 1280, 'pista')
   }
 
-  // Um objeto a cada 600 px: estrela 50%, obstáculo 30%, nitro 20% (mín. 1500 px entre nitros).
-  gerarObjetos () {
-    const lista = []
-    let ultimoNitro = -Infinity
-    for (let pos = 600; pos < COMPRIMENTO_PISTA - 300; pos += 600) {
-      const faixa = Phaser.Math.Between(0, 2)
-      const r = Math.random()
-      let tipo = 'estrela'
-      if (r >= 0.5 && r < 0.8 && pos >= 800) tipo = Math.random() < 0.5 ? 'cone' : 'poca'
-      else if (r >= 0.8 && pos - ultimoNitro >= 1500) { tipo = 'nitro'; ultimoNitro = pos }
-
-      let sprite
-      if (tipo === 'poca') sprite = this.add.ellipse(FAIXAS_X[faixa], 0, 110, 70, 0x6D4C41)
-      else sprite = this.add.text(FAIXAS_X[faixa], 0, { estrela: '⭐', cone: '🚧', nitro: '🔥' }[tipo], { fontSize: '80px', fontFamily: FONTE }).setOrigin(0.5)
-      if (tipo === 'nitro') this.tweens.add({ targets: sprite, scale: 1.2, duration: 300, yoyo: true, repeat: -1 })
-      lista.push({ pos, faixa, tipo, sprite, pego: false })
+  // Objetos da pista: sprites do Kenney; se a textura faltar, volta ao emoji.
+  criarObjeto ({ faixa, tipo }) {
+    const x = FAIXAS_X[faixa]
+    const sprites = { cone: ['cone', 80], oleo: ['oleo', 120], pneus: ['pneus', 90], nitro: ['seta', 130] }
+    let sprite
+    if (sprites[tipo] && this.textures.exists(sprites[tipo][0])) {
+      const [chave, largura] = sprites[tipo]
+      sprite = this.add.image(x, 0, chave)
+      sprite.setScale(largura / sprite.width)
+    } else {
+      sprite = this.add.text(x, 0, { estrela: '⭐', cone: '🚧', oleo: '🛢️', pneus: '🛞', nitro: '🔥' }[tipo], { fontSize: '80px', fontFamily: FONTE }).setOrigin(0.5)
     }
-    return lista
+    if (tipo === 'nitro') this.tweens.add({ targets: sprite, scale: sprite.scale * 1.15, duration: 300, yoyo: true, repeat: -1 })
+    return sprite
+  }
+
+  // Enfeites na grama (sem colisão); arquibancada deitada para caber na lateral.
+  criarEnfeite ({ lado, tipo }) {
+    if (!this.textures.exists(tipo)) return null
+    const img = this.add.image(lado < 0 ? 60 : 660, 0, tipo)
+    if (tipo === 'arquibancada') img.setAngle(lado < 0 ? 90 : -90).setScale(110 / img.height)
+    else img.setScale(Math.min(110 / img.width, 1))
+    return img
   }
 
   criarPainel () {
@@ -115,6 +122,8 @@ export default class Corrida extends Phaser.Scene {
     this.posTheo += vel * dt
     this.pista.tilePositionY = -this.posTheo
     const naTela = pos => Y_THEO - (pos - this.posTheo)
+
+    for (const c of this.cenario) c.sprite?.setY(naTela(c.pos))
 
     for (const a of this.adversarios) {
       atualizarAdversario(a, this.posTheo, dt)
