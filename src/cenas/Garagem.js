@@ -5,16 +5,21 @@ import { criarCarro } from '../carro.js'
 import { CATALOGO, porId } from '../logica/catalogo.js'
 import { carregar, gravar, visualDe } from '../logica/salvar.js'
 import { colarAdesivo, moverAdesivo } from '../logica/adesivos.js'
+import { ESTRELAS_POR_BARRA } from '../logica/presentes.js'
 
 const CENTRO_CARRO = { x: 360, y: 420 }
 const ESCALA_CARRO = 1.6
 const TIPOS_PECA = [['aerofolio', '✈️'], ['teto', '🚨'], ['rodas', '🛞'], ['escapamento', '🔥']]
+const TIPOS_DA_ABA = { carro: ['carro'], cor: ['cor'], peca: TIPOS_PECA.map(([t]) => t), adesivo: ['adesivo'] }
 
 export default class Garagem extends Phaser.Scene {
   constructor () { super('Garagem') }
 
   create () {
+    // A cena é reaproveitada pelo Phaser: zera o estado da visita anterior.
     this.saindo = false
+    this.carro = null
+    this.arrasto = null
     this.estado = carregar()
     this.aba = 'carro'
     this.tipoPeca = 'aerofolio'
@@ -25,6 +30,17 @@ export default class Garagem extends Phaser.Scene {
 
     const abas = [['carro', '🚗'], ['cor', '🎨'], ['peca', '🔧'], ['adesivo', '⭐']]
     abas.forEach(([aba, emoji], i) => botao(this, 120 + i * 160, 1195, emoji, () => this.mostrarAba(aba), 100))
+    // Bolinha pulsando na aba que tem item novo.
+    this.pontos = Object.fromEntries(abas.map(([aba], i) => {
+      const ponto = this.add.circle(170 + i * 160, 1140, 16, 0xE53935).setStrokeStyle(4, 0xFFFFFF).setDepth(5)
+      this.tweens.add({ targets: ponto, scale: 1.3, duration: 400, yoyo: true, repeat: -1 })
+      return [aba, ponto]
+    }))
+
+    // Barra de estrelas: cheia = presente extra.
+    this.add.text(60, 90, '⭐', { fontSize: '64px', fontFamily: FONTE }).setOrigin(0.5)
+    this.add.rectangle(110, 90, 400, 36, 0xFFFFFF, 0.8).setOrigin(0, 0.5).setStrokeStyle(4, 0x000000, 0.3)
+    this.add.rectangle(112, 90, 396 * Math.min(this.estado.estrelas / ESTRELAS_POR_BARRA, 1), 32, 0xFFC107).setOrigin(0, 0.5)
 
     botao(this, 640, 90, '🏁', () => {
       if (this.saindo) return
@@ -41,6 +57,10 @@ export default class Garagem extends Phaser.Scene {
   get visual () { return visualDe(this.estado, this.estado.carroAtual) }
 
   modeloDe (carroId) { return porId(carroId)?.valor ?? 'carrinho' }
+
+  novos (aba) {
+    return this.estado.ganhos.filter(id => !this.estado.vistos.includes(id) && TIPOS_DA_ABA[aba].includes(porId(id)?.tipo))
+  }
 
   ganhos (tipo) { return CATALOGO.filter(i => i.tipo === tipo && this.estado.ganhos.includes(i.id)) }
 
@@ -92,6 +112,12 @@ export default class Garagem extends Phaser.Scene {
     const trocouAba = this.aba !== aba
     this.aba = aba
     if (trocouAba) this.desenharCarro()
+    const novos = this.novos(aba)
+    if (novos.length) {
+      this.estado.vistos.push(...novos)
+      gravar(this.estado)
+    }
+    for (const [a, ponto] of Object.entries(this.pontos)) ponto.setVisible(this.novos(a).length > 0)
     this.opcoes.forEach(o => o.destroy())
     this.opcoes = []
     const v = this.visual

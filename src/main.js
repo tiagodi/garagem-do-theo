@@ -5,7 +5,7 @@ import Corrida from './cenas/Corrida.js'
 import LavaJato from './cenas/LavaJato.js'
 import Presente from './cenas/Presente.js'
 
-new Phaser.Game({
+const jogo = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'jogo',
   backgroundColor: '#87CEEB',
@@ -13,6 +13,9 @@ new Phaser.Game({
   input: { activePointers: 2 },
   scene: [Inicio, Garagem, Corrida, LavaJato, Presente]
 })
+
+// Só em desenvolvimento: deixa o jogo acessível para testar pelo console.
+if (import.meta.env.DEV) window.jogo = jogo
 
 // Só no build publicado (HTTPS): em dev o cache-first serviria arquivos velhos.
 if (import.meta.env.PROD && location.protocol === 'https:' && 'serviceWorker' in navigator) {

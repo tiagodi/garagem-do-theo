@@ -17,7 +17,10 @@ export default class LavaJato extends Phaser.Scene {
   init (dados) { this.dados = dados }
 
   create () {
+    // A cena é reaproveitada pelo Phaser: zera o estado da visita anterior.
     this.saindo = false
+    this.limpo = false
+    this.ultimo = null
     this.ultimaAgua = 0
     const estado = carregar()
     const modelo = porId(estado.carroAtual)?.valor ?? 'carrinho'
