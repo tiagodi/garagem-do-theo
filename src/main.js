@@ -2,6 +2,8 @@ import Phaser from 'phaser'
 import Inicio from './cenas/Inicio.js'
 import Garagem from './cenas/Garagem.js'
 import Corrida from './cenas/Corrida.js'
+import LavaJato from './cenas/LavaJato.js'
+import Presente from './cenas/Presente.js'
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -9,7 +11,7 @@ new Phaser.Game({
   backgroundColor: '#87CEEB',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 720, height: 1280 },
   input: { activePointers: 2 },
-  scene: [Inicio, Garagem, Corrida]
+  scene: [Inicio, Garagem, Corrida, LavaJato, Presente]
 })
 
 // Só no build publicado (HTTPS): em dev o cache-first serviria arquivos velhos.
