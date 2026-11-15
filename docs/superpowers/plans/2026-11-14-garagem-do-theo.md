@@ -102,7 +102,7 @@
     - peças: `nenhum` inicial em cada tipo, mais 2 a 3 opções por tipo (aerofólio: `baixo`, `alto`, `duplo`; teto: `sirene`, `bagageiro`, `faixa`; rodas: aro `0xFFFFFF`, `0xFDD835`, `0xE53935`; escapamento: fogo `0xFF6D00` inicial, `0x2979FF`, `0x00E676`, `0xD500F9`);
     - adesivos: 4 iniciais (⭐ ❤️ 🔥 ⚡) e mais 12 (🦖 🚀 🐶 🐱 🌈 ⚽ 🦁 🐸 🍕 👑 🦈 🐉).
   - `ESTADO_INICIAL(): Estado`.
-  - `Estado = { ganhos: string[], carroAtual: string, porCarro: { [carroId]: Visual }, estrelas: number, ultimaCorrida: number }`.
+  - `Estado = { ganhos: string[], vistos: string[], carroAtual: string, porCarro: { [carroId]: Visual }, estrelas: number, ultimaCorrida: number }`.
   - `Visual = { cor: number, aerofolio: string, teto: string, rodas: string, escapamento: string, adesivos: {emoji: string, x: number, y: number}[] }`. As posições `x` e `y` vão de -1 a 1, relativas ao carro.
   - `visualDe(estado, carroId): Visual`: devolve o visual salvo ou o padrão (vermelho, sem peças, fogo laranja, sem adesivos).
   - `carregar(storage = globalThis.localStorage): Estado` e `gravar(estado, storage = globalThis.localStorage): void`. `gravar` engole exceções.
@@ -296,7 +296,7 @@
   - Com mais de um item, ele toca de novo para o próximo.
   - Com `itens` vazio (tudo ganho), só confete.
   - Depois, ✅ (160 px) leva à `Garagem`. Usar a guarda `this.saindo`.
-  - Na Garagem: barra de estrelas no topo (`estado.estrelas / ESTRELAS_POR_BARRA`) e um ponto pulsante na aba que tem item novo (ids em `ganhos` que ainda não foram vistos; guardar `vistos` no `Estado` com padrão `[]`).
+  - Na Garagem: barra de estrelas no topo (`estado.estrelas / ESTRELAS_POR_BARRA`) e um ponto pulsante na aba que tem item novo (ids em `ganhos` que não estão em `estado.vistos`; ao abrir a aba, os ids dela entram em `vistos` e são gravados).
 - [ ] **Step 6:** verificar no navegador o ciclo completo Início → Garagem → Corrida → Lava-jato → Presente → Garagem, 3 vezes.
   - Os itens novos aparecem nas abas.
   - Tocar duas vezes rápido na caixa não dá presente duplicado.
