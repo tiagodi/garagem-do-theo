@@ -61,9 +61,27 @@ Início → Garagem → Corrida → Lava-jato → Presente → Garagem
   - ajuste dos adversários (velocidade alvo a partir da distância até o Theo e do progresso da pista);
   - sorteio de presentes;
   - salvar e carregar com valores padrão.
-- Carros, peças, pista e objetos desenhados em código (Phaser Graphics); adesivos são emojis; sons sintetizados com WebAudio. Nenhum asset de terceiros.
+- Visual: sprites do Kenney *Racing Pack* (CC0) para carros e cenário (ver "Sprites do Kenney"); peças e ônibus desenhados em código; adesivos são emojis; sons sintetizados com WebAudio.
 - PWA: `manifest.webmanifest` (nome, ícone, `display: fullscreen`, `orientation: portrait`) e um service worker que guarda os arquivos do jogo para funcionar sem internet.
 - Publicação: GitHub Pages (HTTPS, obrigatório para instalar a PWA). Instalação pelo menu "Adicionar à tela inicial" do Chrome no Android.
+
+## Sprites do Kenney
+
+Fonte: Kenney *Racing Pack* (CC0). Só os PNGs usados entram no repositório, em `public/assets/kenney/`, junto com a licença do Kenney. O zip original não entra.
+
+- **Modelos:** carrinho = carro `2`; esportivo = `3`; caminhonete = `4` (picape com caçamba); viatura = `5` (preto por padrão, sirene desenhada). O ônibus não existe no pacote e continua desenhado em código, imitando o estilo (contorno grosso escuro e brilho branco).
+- **Pintura:** para cada modelo, um script gera duas camadas a partir do carro vermelho: a carroceria em cinza claro, que recebe o tint da cor escolhida mantendo as sombras, e os detalhes brancos (faixas, brilhos), que ficam por cima sem tint. As 10 cores do catálogo continuam valendo.
+- **Peças:** desenhadas em código por cima do sprite, proporcionais ao tamanho de cada modelo. As rodas aparecem um pouco para fora da carroceria, para a cor do aro continuar visível.
+- **Corrida:**
+  - cone do Kenney no lugar de 🚧;
+  - mancha de óleo no lugar da poça;
+  - pneus empilhados como terceiro tipo de obstáculo, com o mesmo efeito de batida;
+  - o nitro é a seta amarela pintada na pista (passar por cima acelera);
+  - nas laterais, árvores, pedras, tendas e arquibancada com torcida rolam com a pista, sem colisão;
+  - os adversários usam carros do Kenney nas cores originais;
+  - as estrelas continuam emoji ⭐.
+- O carro continua igual em todas as telas: um único módulo desenha o carro.
+- **Critério de aceite do visual:** antes de entrar no jogo, uma prévia dos 4 modelos nas 10 cores é aprovada pelo Tiago.
 
 ## Fora do escopo
 
