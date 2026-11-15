@@ -61,7 +61,7 @@ Início → Garagem → Corrida → Lava-jato → Presente → Garagem
   - ajuste dos adversários (velocidade alvo a partir da distância até o Theo e do progresso da pista);
   - sorteio de presentes;
   - salvar e carregar com valores padrão.
-- Desenhos e sons do Kenney (CC0), guardados no projeto. Os créditos ficam no `README`.
+- Carros, peças, pista e objetos desenhados em código (Phaser Graphics); adesivos são emojis; sons sintetizados com WebAudio. Nenhum asset de terceiros.
 - PWA: `manifest.webmanifest` (nome, ícone, `display: fullscreen`, `orientation: portrait`) e um service worker que guarda os arquivos do jogo para funcionar sem internet.
 - Publicação: GitHub Pages (HTTPS, obrigatório para instalar a PWA). Instalação pelo menu "Adicionar à tela inicial" do Chrome no Android.
 
