@@ -39,6 +39,7 @@ for i in 1 2 3; do cp "$O/rock$i.png" "$DESTINO/pedra_$i.png"; done
 cp "$O/tent_red.png" "$DESTINO/tenda_v.png"
 cp "$O/tent_blue.png" "$DESTINO/tenda_a.png"
 cp "$O/tribune_full.png" "$DESTINO/arquibancada.png"
+cp "$ORIGEM/PNG/Tiles/Grass/land_grass11.png" "$DESTINO/grama.png" # grama lisa, fundo do circuito
 
 cp "$ORIGEM/License.txt" "$DESTINO/License.txt"
 echo "sprites prontos em $DESTINO"
