@@ -129,7 +129,8 @@ export default class Corrida extends Phaser.Scene {
     const p = this.input.activePointer
     const dedo = p.isDown ? (p.x < W / 2 ? -1 : 1) : 0
     this.x = moverLateral({ x: this.x, dedo, curva, pct, dt })
-    this.percorrido += VELOCIDADE_BASE * pct * dt
+    this.passo = VELOCIDADE_BASE * pct * dt
+    this.percorrido += this.passo
     this.morros += curva * pct * dt * 40
 
     this.fogo.setVisible(nitro)
@@ -275,9 +276,9 @@ export default class Corrida extends Phaser.Scene {
 
   pegarObjetos () {
     const volta = this.volta()
-    const d = this.percorrido % this.L
+    const antes = (this.percorrido - this.passo) % this.L // mede do ponto de antes do passo
     for (const o of this.objetos) {
-      if (o.pego || o.voltaPega === volta || !colide(o.x, aFrente(o.pos, d, this.L), this.x)) continue
+      if (o.pego || o.voltaPega === volta || !colide(o.x, aFrente(o.pos, antes, this.L), this.x, this.passo)) continue
       o.voltaPega = volta
       if (o.tipo === 'estrela') {
         o.pego = true // estrela não volta na 2ª volta

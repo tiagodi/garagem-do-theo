@@ -34,4 +34,5 @@ export const naGrama = x => Math.abs(x) > 1
 
 export const aFrente = (dObjeto, dTheo, L) => ((dObjeto - dTheo) % L + L) % L
 
-export const colide = (objX, dist, x) => dist < PX_POR_SEGMENTO * 2 && Math.abs(objX - x) < 0.35
+// passo = quanto o carro andou neste quadro: com nitro num celular lento, ele não pula o objeto.
+export const colide = (objX, dist, x, passo = 0) => dist < PX_POR_SEGMENTO * 2 + passo && Math.abs(objX - x) < 0.35

@@ -57,4 +57,8 @@ describe('objetos', () => {
     expect(colide(0.2, L - 5, 0)).toBe(false)
     expect(colide(0.5, 5, 0)).toBe(false)
   })
+  it('passo grande (nitro em celular lento) não pula o objeto', () => {
+    expect(colide(0, 28, 0, 30)).toBe(true)
+    expect(colide(0, 28, 0)).toBe(false)
+  })
 })
