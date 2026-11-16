@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { criarAdversarios, velocidadeAlvo, simularCorrida, VELOCIDADE_BASE, COMPRIMENTO_PISTA } from './adversarios.js'
+import { criarAdversarios, velocidadeAlvo, simularCorrida, VELOCIDADE_BASE, COMPRIMENTO_PADRAO } from './adversarios.js'
 
 // Gerador pseudoaleatório com semente (LCG), para o teste ser repetível.
 function lcg (semente) {
@@ -22,14 +22,17 @@ describe('criarAdversarios', () => {
 
 describe('velocidadeAlvo', () => {
   it('adversário na frente desacelera', () => {
-    expect(velocidadeAlvo(adv(1300), 1000)).toBeLessThan(VELOCIDADE_BASE)
+    expect(velocidadeAlvo(adv(1300), 1000, COMPRIMENTO_PADRAO)).toBeLessThan(VELOCIDADE_BASE)
   })
   it('adversário muito atrás acelera', () => {
-    expect(velocidadeAlvo(adv(400), 1000)).toBeGreaterThan(VELOCIDADE_BASE)
+    expect(velocidadeAlvo(adv(400), 1000, COMPRIMENTO_PADRAO)).toBeGreaterThan(VELOCIDADE_BASE)
   })
   it('na reta final, o não ousado é mais lento que o ousado', () => {
-    const final = COMPRIMENTO_PISTA * 0.9
-    expect(velocidadeAlvo(adv(final + 50), final)).toBeLessThan(velocidadeAlvo(adv(final + 50, true), final))
+    const final = COMPRIMENTO_PADRAO * 0.9
+    expect(velocidadeAlvo(adv(final + 50), final, COMPRIMENTO_PADRAO)).toBeLessThan(velocidadeAlvo(adv(final + 50, true), final, COMPRIMENTO_PADRAO))
+  })
+  it('a reta final depende do total da corrida', () => {
+    expect(velocidadeAlvo(adv(9050), 9000, 10000)).toBeLessThan(velocidadeAlvo(adv(9050), 9000, 20000))
   })
 })
 
@@ -45,10 +48,10 @@ describe('simularCorrida', () => {
 })
 
 describe('ritmo da corrida', () => {
-  it('carro 50% mais rápido e corrida de 40 a 50 s', () => {
+  it('2 voltas de circuito: corrida de 50 a 60 s', () => {
     expect(VELOCIDADE_BASE).toBe(330)
-    const segundos = COMPRIMENTO_PISTA / VELOCIDADE_BASE
-    expect(segundos).toBeGreaterThanOrEqual(40)
-    expect(segundos).toBeLessThanOrEqual(50)
+    const segundos = COMPRIMENTO_PADRAO / VELOCIDADE_BASE
+    expect(segundos).toBeGreaterThanOrEqual(50)
+    expect(segundos).toBeLessThanOrEqual(60)
   })
 })
