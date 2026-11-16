@@ -27,16 +27,44 @@ Início → Garagem → Corrida → Lava-jato → Presente → Garagem
 
 ## Corrida
 
-- Vista de cima, pista reta com 3 faixas rolando. O carro anda sozinho, e ele arrasta o dedo para trocar de faixa.
-- **3 adversários** com ajuste ao jogador:
-  - na frente do Theo, desaceleram;
-  - muito atrás, alcançam;
-  - nos últimos 15% da pista, freiam.
+Circuito fechado visto de cima. O Theo dirige com o dedo.
+
+- **Circuitos:** três laços fechados (*oval*, *feijão* e *serpente*), um sorteado por corrida.
+  - Cada circuito é uma lista de ~15 pontos de controle. O jogo suaviza essa lista numa linha central.
+  - A largura do asfalto é ~360 px, com zebras vermelho/branco nas bordas. O fundo é a grama do Kenney.
+  - A linha central serve para tudo: desenho da pista, adversários, assistência, voltas e posição dos objetos.
+- **Corrida:** 2 voltas, com duração total de 50 a 60 s.
+  - O Theo e 3 adversários largam lado a lado na linha de chegada.
+  - No início da 2ª volta aparece "ÚLTIMA VOLTA!" com som.
+- **Direção:**
+  - O carro acelera sozinho, na `VELOCIDADE_BASE` atual.
+  - Com o dedo na tela, o carro vira na direção do ponto tocado (no mundo), com limite de giro por segundo.
+  - Sem o dedo, segue a pista sozinho.
+  - **Assistência invisível:** o ângulo desejado mistura "para o dedo" com "para a frente na pista". O peso da pista cresce com o afastamento do centro: perto do centro, quem manda é o dedo; perto da borda, é a pista. Resultado: o carro pode sair um pouco, mas sempre volta.
+  - **Grama:** fora do asfalto, a velocidade cai para 60%. Não há derrota, parede nem batida por sair da pista.
+- **Câmera:** segue o carro. O mapa não gira: o norte fica sempre para cima.
+- **Adversários:**
+  - Seguem a linha central, cada um deslocado para um lado.
+  - O ajuste elástico atual continua, medido pela distância percorrida na linha (2 voltas = comprimento total):
+    - na frente do Theo, desaceleram;
+    - muito atrás, alcançam;
+    - nos últimos 15% da corrida, freiam.
   - Meta: o Theo chega em 1º em cerca de 85% das corridas. Nas outras, chega em 2º.
-- **Nitro 🔥**: um ícone na pista que, ao ser tocado pelo carro, acelera por 3 s, com fogo no escapamento. A cor do fogo depende da peça de escapamento.
-- **Estrelas ⭐** para coletar. **Cones e poças** como obstáculos: bater faz o carro rodar por cerca de 1 s e perder um pouco de velocidade.
-- Posição exibida com 🥇🥈🥉. Linha de chegada com confete, e o 1º lugar tem uma comemoração maior.
-- Os adversários não batem no Theo. Batida só acontece com obstáculos.
+  - Os adversários não batem no Theo. Batida só acontece com obstáculos.
+- **Objetos na pista** (sorteados uma vez por corrida, nas mesmas posições nas duas voltas):
+  - um objeto a cada ~600 px de linha, deslocado à esquerda, no centro ou à direita;
+  - 50% estrela ⭐, 30% obstáculo (cone, óleo ou pneus), 20% nitro (seta amarela);
+  - nenhum obstáculo nos primeiros 800 px; nitros a pelo menos 1500 px um do outro;
+  - estrela pega some e não volta na 2ª volta;
+  - nitro: 1.8× por 3 s, com fogo no escapamento;
+  - obstáculo: 0.5× por 1 s, com o carro rodando.
+- **Cenário:** árvores, pedras e tendas na grama, fora do asfalto. Arquibancada com torcida ao lado da reta de largada.
+- **Placar na tela:**
+  - medalha da posição 🥇🥈🥉;
+  - estrelas;
+  - volta "1/2" ou "2/2" com 🏁;
+  - minimapa no canto com a forma do circuito e um pontinho por carro (o do Theo maior).
+- **Chegada:** linha quadriculada atravessada na pista. Troféu no 1º lugar ou medalha nos outros, confete e lava-jato, como antes.
 
 ## Garagem
 
@@ -59,6 +87,8 @@ Início → Garagem → Corrida → Lava-jato → Presente → Garagem
 - Phaser 3, Vite e JavaScript (ES modules). Vitest só para a lógica pura.
 - Lógica pura, testável e separada das cenas:
   - ajuste dos adversários (velocidade alvo a partir da distância até o Theo e do progresso da pista);
+  - circuitos: suavização da linha central, ponto mais próximo (distância percorrida e afastamento), posição e direção na distância d;
+  - direção: ângulo novo a partir do ângulo atual, do dedo e da direção da pista, com assistência e limite de giro;
   - sorteio de presentes;
   - salvar e carregar com valores padrão.
 - Visual: sprites do Kenney *Racing Pack* (CC0) para carros e cenário (ver "Sprites do Kenney"); peças e ônibus desenhados em código; adesivos são emojis; sons sintetizados com WebAudio.
@@ -77,7 +107,7 @@ Fonte: Kenney *Racing Pack* (CC0). Só os PNGs usados entram no repositório, em
   - mancha de óleo no lugar da poça;
   - pneus empilhados como terceiro tipo de obstáculo, com o mesmo efeito de batida;
   - o nitro é a seta amarela pintada na pista (passar por cima acelera);
-  - nas laterais, árvores, pedras, tendas e arquibancada com torcida rolam com a pista, sem colisão;
+  - na grama, árvores, pedras, tendas e arquibancada com torcida, sem colisão;
   - os adversários usam carros do Kenney nas cores originais;
   - as estrelas continuam emoji ⭐.
 - O carro continua igual em todas as telas: um único módulo desenha o carro.
@@ -86,7 +116,7 @@ Fonte: Kenney *Racing Pack* (CC0). Só os PNGs usados entram no repositório, em
 ## Fora do escopo
 
 - Play Store, APK, anúncios, compras, contas, multiplayer e ranking.
-- Pista com curvas, física realista e mais de uma pista na primeira versão.
+- Física realista (derrapagem, inércia), colisão entre carros, editor de pistas e circuitos liberados por presente.
 - Pintura livre com o dedo (só cores prontas).
 
 ## Entregas
@@ -97,3 +127,4 @@ Fonte: Kenney *Racing Pack* (CC0). Só os PNGs usados entram no repositório, em
 4. Corrida com adversários, nitro, estrelas e obstáculos.
 5. Presentes e progresso, com peças e carros liberáveis.
 6. Publicação no GitHub Pages e instalação no celular.
+7. Circuitos com direção pelo dedo, substituindo a pista reta.
