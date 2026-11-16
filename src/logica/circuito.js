@@ -66,36 +66,3 @@ export function pontoNa (c, d) {
   const t = seg > 0 ? (dm - p.d) / seg : 0
   return { x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t, angulo: Math.atan2(q.y - p.y, q.x - p.x) }
 }
-
-// Ponto da linha mais perto de (x, y). Com dica, procura só ±600 px em volta (rápido e não pula para outro trecho).
-export function maisProximo (c, x, y, dDica) {
-  const { amostras: a, comprimento: L } = c
-  const n = a.length
-  let ini = 0
-  let qtd = n
-  if (dDica !== undefined) {
-    const janela = Math.ceil(600 / PASSO)
-    ini = Math.floor(modulo(dDica, L) / PASSO) - janela
-    qtd = 2 * janela + 1
-  }
-  let melhor = -1
-  let menor = Infinity
-  for (let k = 0; k < qtd; k++) {
-    const i = ((ini + k) % n + n) % n
-    const dist = (a[i].x - x) ** 2 + (a[i].y - y) ** 2
-    if (dist < menor) { menor = dist; melhor = i }
-  }
-  const p = pontoNa(c, a[melhor].d)
-  const dx = x - p.x
-  const dy = y - p.y
-  const ao = dx * Math.cos(p.angulo) + dy * Math.sin(p.angulo)
-  return { d: modulo(a[melhor].d + ao, L), afastamento: -dx * Math.sin(p.angulo) + dy * Math.cos(p.angulo) }
-}
-
-// Soma ao percorrido a diferença entre dNovo e dAnterior, desdobrando a passagem pela largada.
-export function avancar (percorrido, dAnterior, dNovo, L) {
-  let delta = dNovo - dAnterior
-  if (delta > L / 2) delta -= L
-  else if (delta < -L / 2) delta += L
-  return percorrido + delta
-}

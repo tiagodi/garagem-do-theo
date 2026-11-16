@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CIRCUITOS, LARGURA_PISTA, criarCircuito, pontoNa, maisProximo, avancar } from './circuito.js'
+import { CIRCUITOS, LARGURA_PISTA, criarCircuito, pontoNa } from './circuito.js'
 
 for (const [nome, pontos] of Object.entries(CIRCUITOS)) {
   describe(`circuito ${nome}`, () => {
@@ -30,18 +30,6 @@ for (const [nome, pontos] of Object.entries(CIRCUITOS)) {
       expect(menor).toBeGreaterThanOrEqual(LARGURA_PISTA + 200)
     })
 
-    it('maisProximo devolve d e afastamento com sinal (direita positiva)', () => {
-      const p = pontoNa(c, 3000)
-      // direita do sentido de marcha (y para baixo): ângulo + 90°
-      const x = p.x + Math.cos(p.angulo + Math.PI / 2) * 100
-      const y = p.y + Math.sin(p.angulo + Math.PI / 2) * 100
-      for (const dica of [undefined, 2900]) {
-        const r = maisProximo(c, x, y, dica)
-        expect(Math.abs(r.d - 3000)).toBeLessThanOrEqual(30)
-        expect(Math.abs(r.afastamento - 100)).toBeLessThanOrEqual(10)
-      }
-    })
-
     it('pontoNa aceita d negativo e maior que a volta', () => {
       const a = pontoNa(c, -100)
       const b = pontoNa(c, L - 100)
@@ -51,9 +39,5 @@ for (const [nome, pontos] of Object.entries(CIRCUITOS)) {
       expect(d.x).toBeCloseTo(b.x, 5)
     })
 
-    it('avancar desdobra a passagem pela largada', () => {
-      expect(avancar(9000, L - 50, 30, L)).toBeCloseTo(9080, 5)
-      expect(avancar(100, 30, L - 20, L)).toBeCloseTo(50, 5)
-    })
   })
 }

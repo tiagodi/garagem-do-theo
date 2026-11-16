@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { gerarObjetos, gerarCenario } from './pista.js'
-import { CIRCUITOS, LARGURA_PISTA, criarCircuito, maisProximo } from './circuito.js'
+import { gerarObjetos, gerarEnfeites } from './pista.js'
 
 function lcg (semente) {
   let s = semente
@@ -41,21 +40,25 @@ describe('gerarObjetos na volta', () => {
   })
 })
 
-describe.each(Object.entries(CIRCUITOS))('gerarCenario no circuito %s', (_n, pontos) => {
-  const c = criarCircuito(pontos)
-  const cenarios = [1, 2, 3].map(s => gerarCenario(lcg(s), c))
-  it('nada em cima do asfalto (nem de outro trecho)', () => {
-    for (const cen of cenarios) {
-      expect(cen.length).toBeGreaterThan(10)
-      for (const e of cen) expect(Math.abs(maisProximo(c, e.x, e.y).afastamento)).toBeGreaterThanOrEqual(LARGURA_PISTA / 2 + 80)
-    }
+describe('gerarEnfeites', () => {
+  const L = 9000
+  const enfeites = gerarEnfeites(lcg(5), L)
+  it('fora do asfalto, alternando os lados', () => {
+    const comuns = enfeites.filter(e => e.tipo !== 'arquibancada')
+    expect(comuns.length).toBeGreaterThan(40)
+    for (const e of comuns) expect(Math.abs(e.x)).toBeGreaterThanOrEqual(1.5)
+    for (let i = 1; i < comuns.length; i++) expect(Math.sign(comuns[i].x)).toBe(-Math.sign(comuns[i - 1].x))
   })
-  it('1 ou 2 arquibancadas, só tipos conhecidos', () => {
-    for (const cen of cenarios) {
-      const arq = cen.filter(e => e.tipo === 'arquibancada').length
-      expect(arq).toBeGreaterThanOrEqual(1)
-      expect(arq).toBeLessThanOrEqual(2)
-      for (const e of cen) expect(['arvore_g', 'arvore_p', 'pedra_1', 'pedra_2', 'pedra_3', 'tenda_v', 'tenda_a', 'arquibancada']).toContain(e.tipo)
+  it('duas arquibancadas perto da largada, do lado de fora', () => {
+    const arq = enfeites.filter(e => e.tipo === 'arquibancada')
+    expect(arq.map(a => a.d).sort((a, b) => a - b)).toEqual([150, L - 150])
+    for (const a of arq) expect(a.x).toBe(-2)
+  })
+  it('só tipos conhecidos, dentro da volta', () => {
+    for (const e of enfeites) {
+      expect(['arvore', 'pinheiro', 'pedra', 'tenda', 'arquibancada']).toContain(e.tipo)
+      expect(e.d).toBeGreaterThanOrEqual(0)
+      expect(e.d).toBeLessThan(L)
     }
   })
 })
