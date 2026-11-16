@@ -5,20 +5,39 @@ describe('GradeSujeira', () => {
   it('começa toda suja', () => {
     expect(new GradeSujeira(200, 400).fracaoLimpa()).toBe(0)
   })
-  it('raio enorme limpa tudo', () => {
+  it('jato sem espuma não limpa e avisa que acertou lama', () => {
     const g = new GradeSujeira(200, 400)
-    g.limpar(100, 200, 10000)
-    expect(g.fracaoLimpa()).toBe(1)
+    const r = g.enxaguar(100, 200, 60)
+    expect(g.fracaoLimpa()).toBe(0)
+    expect(r.limpou).toBe(0)
+    expect(r.naLama).toBeGreaterThan(0)
   })
-  it('limpar a metade esquerda dá cerca de metade', () => {
+  it('ensaboar e enxaguar tudo limpa tudo', () => {
     const g = new GradeSujeira(200, 400)
-    for (let y = 0; y <= 400; y += 10) g.limpar(50, y, 50)
+    g.ensaboar(100, 200, 10000)
+    expect(g.fracaoLimpa()).toBe(0)
+    const r = g.enxaguar(100, 200, 10000)
+    expect(g.fracaoLimpa()).toBe(1)
+    expect(r.naLama).toBe(0)
+    expect(r.limpou).toBeGreaterThan(0)
+  })
+  it('só a metade ensaboada fica limpa', () => {
+    const g = new GradeSujeira(200, 400)
+    for (let y = 0; y <= 400; y += 10) g.ensaboar(50, y, 50)
+    g.enxaguar(100, 200, 10000)
     expect(g.fracaoLimpa()).toBeGreaterThan(0.4)
     expect(g.fracaoLimpa()).toBeLessThan(0.6)
   })
-  it('limpar fora da grade não quebra', () => {
+  it('enxaguar devolve as células limpas para apagar na tela', () => {
     const g = new GradeSujeira(200, 400)
-    expect(() => g.limpar(-500, 9999, 30)).not.toThrow()
+    g.ensaboar(10, 10, 15)
+    const r = g.enxaguar(10, 10, 15)
+    expect(r.celulas.length).toBe(r.limpou)
+    for (const c of r.celulas) expect(c).toEqual({ x: expect.any(Number), y: expect.any(Number) })
+  })
+  it('fora da grade não quebra', () => {
+    const g = new GradeSujeira(200, 400)
+    expect(() => { g.ensaboar(-500, 9999, 30); g.enxaguar(-500, 9999, 30) }).not.toThrow()
     expect(g.fracaoLimpa()).toBe(0)
   })
 })
