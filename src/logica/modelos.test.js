@@ -48,10 +48,10 @@ describe('spriteDisponivel', () => {
 })
 
 describe('carregamento', () => {
-  it('todo sprite da lista do Carregar existe em public/assets/kenney (inclui a grama)', () => {
+  it('todo sprite da lista do Carregar existe em public/assets/kenney', () => {
     const fonte = readFileSync(new URL('../cenas/Carregar.js', import.meta.url), 'utf8')
     const lista = fonte.match(/const SPRITES = \[([^\]]*)\]/)[1].match(/'([^']+)'/g).map(s => s.slice(1, -1))
-    expect(lista).toContain('grama')
+    expect(lista).toContain('corpo_2')
     for (const nome of lista) expect(existsSync(new URL(`${nome}.png`, pasta)), nome).toBe(true)
   })
 })
