@@ -1,28 +1,37 @@
 import Phaser from 'phaser'
 import { FONTE } from '../ui.js'
 import { tocar } from '../sons.js'
-import { criarCarro } from '../carro.js'
 import { porId } from '../logica/catalogo.js'
 import { carregar, visualDe } from '../logica/salvar.js'
 import { criarAdversarios, atualizarAdversario, VELOCIDADE_BASE } from '../logica/adversarios.js'
-import { gerarObjetos, gerarCenario } from '../logica/pista.js'
-import { CIRCUITOS, LARGURA_PISTA, criarCircuito, pontoNa, maisProximo, avancar } from '../logica/circuito.js'
-import { novoAngulo, naGrama, FATOR_GRAMA, OLHAR_A_FRENTE } from '../logica/direcao.js'
+import { gerarObjetos, gerarEnfeites } from '../logica/pista.js'
+import { CIRCUITOS, criarCircuito, pontoNa } from '../logica/circuito.js'
+import { curvaturas, moverLateral, naGrama, aFrente, colide, PX_POR_SEGMENTO, FATOR_GRAMA } from '../logica/estrada.js'
+import { desenharCarroTras, adesivosTras } from '../carroTras.js'
 
+const W = 720
+const H = 1280
+const HORIZONTE = H * 0.4
+const SEG = 200 // unidades de mundo por segmento
+const LARGURA = 1100 // meia largura da estrada, em unidades de mundo
+const ALTURA_CAM = 900
+const PROF = 0.84
+const VISTA = 160 // segmentos desenhados à frente
+const ATRAS = 2 // a câmera fica 2 segmentos atrás do carro do Theo
 const VOLTAS = 2
-const LATERAL = [-110, 0, 110] // faixa → deslocamento do centro da pista
+const LATERAL = [-0.5, 0, 0.5] // faixa → posição lateral
 const NITRO = { fator: 1.8, ms: 3000 }
 const BATIDA = { fator: 0.5, ms: 1000 }
 const MEDALHAS = ['🥇', '🥈', '🥉', '🏅']
 const CORES_ADV = [0x1E88E5, 0x43A047, 0xFDD835]
-const BLOCO = 1024 // px do mundo por RenderTexture da pista
-const MINI = { x: 520, y: 1080, lado: 180 }
+const MINI = { x: 520, y: 150, lado: 180 }
+const THEO = { x: 360, y: 1150, w: 300 }
 
-// Posição a `lateral` px à direita da linha central, na distância d.
-function naLinha (c, d, lateral = 0) {
-  const p = pontoNa(c, d)
-  const n = p.angulo + Math.PI / 2
-  return { x: p.x + Math.cos(n) * lateral, y: p.y + Math.sin(n) * lateral, angulo: p.angulo }
+const valor = (id, padrao) => porId(id)?.valor ?? padrao
+
+function projetar (wx, dz) {
+  const esc = PROF / dz
+  return { x: W / 2 + esc * wx * W / 2, y: HORIZONTE + esc * ALTURA_CAM * H / 2 * 0.55, w: esc * LARGURA * W / 2 }
 }
 
 export default class Corrida extends Phaser.Scene {
@@ -31,115 +40,53 @@ export default class Corrida extends Phaser.Scene {
   create () {
     // Phaser reaproveita a cena: todo o estado é zerado aqui.
     this.percorrido = 0
+    this.x = 0
     this.estrelas = 0
     this.nitroAte = 0
     this.batidaAte = 0
     this.terminou = false
     this.avisouUltima = false
+    this.morros = 0
 
     const nomes = Object.keys(CIRCUITOS)
     this.c = criarCircuito(CIRCUITOS[nomes[Math.floor(Math.random() * nomes.length)]])
     this.L = this.c.comprimento
     this.total = VOLTAS * this.L
+    this.curvas = curvaturas(this.c)
+    this.objetos = gerarObjetos(Math.random, this.L).map(o => ({ ...o, x: LATERAL[o.faixa], voltaPega: -1, pego: false }))
+    this.enfeites = gerarEnfeites(Math.random, this.L)
+    this.adversarios = criarAdversarios()
 
-    this.criarMundo()
-    this.cenario = gerarCenario(Math.random, this.c).map(e => this.criarEnfeite(e))
-    this.objetos = gerarObjetos(Math.random, this.L).map(o => ({ ...o, sprite: this.criarObjeto(o), voltaPega: -1, pego: false }))
-
-    this.adversarios = criarAdversarios().map((a, i) => ({
-      ...a,
-      carro: (this.textures.exists(`adv_${i + 1}`)
-        ? this.add.image(0, 0, `adv_${i + 1}`).setScale(96 / 71) // largura dos PNGs: ~71 px
-        : criarCarro(this, 0, 0, 'carrinho', { ...visualDe({ porCarro: {} }, ''), cor: CORES_ADV[i] }, 0.8)).setDepth(4)
-    }))
+    this.fundo = this.add.graphics()
+    this.g = this.add.graphics()
 
     const estado = carregar()
-    const visual = visualDe(estado, estado.carroAtual)
-    const largada = naLinha(this.c, 0, 110)
-    this.d = 0
-    this.angulo = largada.angulo
-    this.theo = criarCarro(this, largada.x, largada.y, porId(estado.carroAtual)?.valor ?? 'carrinho', visual, 0.8).setDepth(5)
-    this.theo.rotation = this.angulo + Math.PI / 2
-
-    const cam = this.cameras.main
-    cam.setBounds(this.mundo.x, this.mundo.y, this.mundo.w, this.mundo.h)
-    cam.startFollow(this.theo, true, 0.12, 0.12)
-
-    this.criarPainel(visual.cor)
-    this.posicionar()
+    const v = visualDe(estado, estado.carroAtual)
+    this.criarTheo(valor(estado.carroAtual, 'carrinho'), v)
+    this.criarPainel(v.cor)
   }
 
-  // Grama, pista pintada uma vez em blocos de meia resolução, e linha de chegada.
-  criarMundo () {
-    const { amostras } = this.c
-    const xs = amostras.map(a => a.x)
-    const ys = amostras.map(a => a.y)
-    const x = Math.min(...xs) - 600
-    const y = Math.min(...ys) - 600
-    this.mundo = { x, y, w: Math.max(...xs) + 600 - x, h: Math.max(...ys) + 600 - y }
-    const { w, h } = this.mundo
-
-    if (this.textures.exists('grama')) this.add.tileSprite(x, y, w, h, 'grama').setOrigin(0)
-    else this.add.rectangle(x, y, w, h, 0x66BB6A).setOrigin(0)
-
-    const g = this.make.graphics({ x: 0, y: 0, add: false })
-    const r = LARGURA_PISTA / 2
-    amostras.forEach((a, i) => g.fillStyle(Math.floor(i / 3) % 2 ? 0xFFFFFF : 0xE53935).fillCircle(a.x, a.y, r + 16))
-    g.fillStyle(0x616161)
-    for (const a of amostras) g.fillCircle(a.x, a.y, r)
-    g.setScale(0.5)
-    for (let bx = x; bx < x + w; bx += BLOCO) {
-      for (let by = y; by < y + h; by += BLOCO) {
-        const temPista = amostras.some(a => a.x > bx - r - 20 && a.x < bx + BLOCO + r + 20 && a.y > by - r - 20 && a.y < by + BLOCO + r + 20)
-        if (!temPista) continue
-        // +2: os blocos se sobrepõem um pouco, para não aparecer emenda.
-        this.add.renderTexture(bx, by, BLOCO / 2 + 2, BLOCO / 2 + 2).setOrigin(0).setScale(2).draw(g, -bx / 2, -by / 2)
-      }
-    }
-    g.destroy()
-
-    if (!this.textures.exists('quadriculado_circuito')) {
-      const q = this.make.graphics({ add: false })
-      for (let i = 0; i < 12; i++) {
-        q.fillStyle(i % 2 ? 0x000000 : 0xFFFFFF).fillRect(i * 30, 0, 30, 30)
-        q.fillStyle(i % 2 ? 0xFFFFFF : 0x000000).fillRect(i * 30, 30, 30, 30)
-      }
-      q.generateTexture('quadriculado_circuito', 360, 60)
-      q.destroy()
-    }
-    const chegada = naLinha(this.c, 0)
-    this.add.image(chegada.x, chegada.y, 'quadriculado_circuito').setRotation(chegada.angulo + Math.PI / 2).setDepth(1)
-  }
-
-  // Objetos da pista: sprites do Kenney; se a textura faltar, volta ao emoji.
-  criarObjeto ({ pos, faixa, tipo }) {
-    const p = naLinha(this.c, pos, LATERAL[faixa])
-    const sprites = { cone: ['cone', 80], oleo: ['oleo', 120], pneus: ['pneus', 90], nitro: ['seta', 130] }
-    let sprite
-    if (sprites[tipo] && this.textures.exists(sprites[tipo][0])) {
-      const [chave, largura] = sprites[tipo]
-      sprite = this.add.image(p.x, p.y, chave)
-      sprite.setScale(largura / sprite.width)
-      if (tipo === 'nitro') sprite.setRotation(p.angulo + Math.PI / 2) // a seta aponta para onde a pista vai
-    } else {
-      sprite = this.add.text(p.x, p.y, { estrela: '⭐', cone: '🚧', oleo: '🛢️', pneus: '🛞', nitro: '🔥' }[tipo], { fontSize: '80px', fontFamily: FONTE }).setOrigin(0.5)
-    }
-    sprite.setDepth(2)
-    if (tipo === 'nitro') this.tweens.add({ targets: sprite, scale: sprite.scale * 1.15, duration: 300, yoyo: true, repeat: -1 })
-    return sprite
-  }
-
-  // Enfeites na grama (sem colisão); arquibancada alinhada com a pista.
-  criarEnfeite ({ x, y, tipo, angulo }) {
-    if (!this.textures.exists(tipo)) return null
-    const img = this.add.image(x, y, tipo).setDepth(3)
-    if (tipo === 'arquibancada') img.setRotation(angulo).setScale(110 / img.height)
-    else img.setScale(Math.min(110 / img.width, 1))
-    return img
+  // Carro do Theo: desenhado uma vez, fixo embaixo da tela.
+  criarTheo (modelo, v) {
+    const c = this.add.container(THEO.x, THEO.y).setDepth(5)
+    const fogo = this.add.graphics().fillStyle(valor(v.escapamento, 0xFF6D00), 0.9)
+    for (const lado of [-1, 1]) fogo.fillTriangle(lado * 90 - 18, -20, lado * 90 + 18, -20, lado * 90, 70)
+    fogo.fillStyle(0xFFF59D, 1)
+    for (const lado of [-1, 1]) fogo.fillTriangle(lado * 90 - 8, -20, lado * 90 + 8, -20, lado * 90, 30)
+    fogo.setVisible(false)
+    const carro = this.add.graphics()
+    desenharCarroTras(carro, 0, 0, THEO.w, {
+      modelo, cor: v.cor, aerofolio: valor(v.aerofolio, 'nenhum'), teto: valor(v.teto, 'nenhum'), rodas: valor(v.rodas, 0x9E9E9E)
+    })
+    c.add([fogo, carro])
+    const lugares = adesivosTras(THEO.w, modelo)
+    v.adesivos.slice(0, 3).forEach((a, i) => c.add(this.add.text(lugares[i].x, lugares[i].y, a.emoji, { fontSize: '44px', fontFamily: FONTE }).setOrigin(0.5)))
+    this.theo = c
+    this.fogo = fogo
   }
 
   criarPainel (corTheo) {
-    const fixo = o => o.setScrollFactor(0).setDepth(10)
+    const fixo = o => o.setDepth(10)
     this.medalha = fixo(this.add.text(70, 70, '🥇', { fontSize: '100px', fontFamily: FONTE }).setOrigin(0.5))
     // Emoji com contorno some em alguns navegadores: ícone e número separados.
     fixo(this.add.text(520, 70, '⭐', { fontSize: '64px', fontFamily: FONTE }).setOrigin(0.5))
@@ -148,15 +95,20 @@ export default class Corrida extends Phaser.Scene {
     fixo(this.add.text(250, 70, '🏁', { fontSize: '56px', fontFamily: FONTE }).setOrigin(0.5))
     this.textoVolta = fixo(this.add.text(340, 70, `1/${VOLTAS}`, numero).setOrigin(0.5))
 
-    // Minimapa: forma do circuito e um pontinho por carro.
-    const k = MINI.lado / Math.max(this.mundo.w, this.mundo.h)
-    this.mini = (x, y) => [MINI.x + (x - this.mundo.x) * k, MINI.y + (y - this.mundo.y) * k]
+    // Minimapa no céu: forma do circuito e um pontinho por carro.
+    const xs = this.c.amostras.map(a => a.x)
+    const ys = this.c.amostras.map(a => a.y)
+    const x0 = Math.min(...xs)
+    const y0 = Math.min(...ys)
+    const k = MINI.lado / Math.max(Math.max(...xs) - x0, Math.max(...ys) - y0)
+    const tela = (x, y) => [MINI.x + (x - x0) * k, MINI.y + (y - y0) * k]
+    this.mini = d => {
+      const p = pontoNa(this.c, d)
+      return tela(p.x, p.y)
+    }
     const fundo = fixo(this.add.graphics())
-    fundo.fillStyle(0xFFFFFF, 0.6).fillRoundedRect(MINI.x - 10, MINI.y - 10, MINI.lado + 20, MINI.lado + 20, 16)
-    fundo.lineStyle(8, 0x424242, 1).strokePoints(this.c.amostras.filter((_, i) => i % 5 === 0).map(a => {
-      const [mx, my] = this.mini(a.x, a.y)
-      return new Phaser.Math.Vector2(mx, my)
-    }), true)
+    fundo.fillStyle(0xFFFFFF, 0.6).fillRoundedRect(MINI.x - 10, MINI.y - 10, MINI.lado + 20, (Math.max(...ys) - y0) * k + 20, 16)
+    fundo.lineStyle(8, 0x424242, 1).strokePoints(this.c.amostras.filter((_, i) => i % 5 === 0).map(a => new Phaser.Math.Vector2(...tela(a.x, a.y))), true)
     this.pontos = fixo(this.add.graphics())
     this.corTheo = corTheo
   }
@@ -165,92 +117,204 @@ export default class Corrida extends Phaser.Scene {
     if (this.terminou) return
     const dt = Math.min(deltaMs, 50) / 1000
     const agora = this.time.now
-    const { c, theo } = this
-
-    const { d, afastamento } = maisProximo(c, theo.x, theo.y, this.d)
-    this.percorrido = avancar(this.percorrido, this.d, d, this.L)
-    this.d = d
-
-    const p = this.input.activePointer
-    const dedo = p.isDown ? this.cameras.main.getWorldPoint(p.x, p.y) : null
-    this.angulo = novoAngulo({
-      angulo: this.angulo, x: theo.x, y: theo.y, dedo, alvoPista: pontoNa(c, d + OLHAR_A_FRENTE), tangente: pontoNa(c, d).angulo, afastamento, dt
-    })
-
     const nitro = agora < this.nitroAte
     const batida = agora < this.batidaAte
-    let vel = VELOCIDADE_BASE
-    if (naGrama(afastamento)) vel *= FATOR_GRAMA
-    if (nitro) vel *= NITRO.fator
-    if (batida) vel *= BATIDA.fator
-    theo.fogo.setVisible(nitro)
-    theo.x += Math.cos(this.angulo) * vel * dt
-    theo.y += Math.sin(this.angulo) * vel * dt
-    // Batida: uma volta completa no próprio eixo, sem mudar a direção de marcha.
-    const giro = batida ? Math.PI * 2 * (1 - (this.batidaAte - agora) / BATIDA.ms) : 0
-    theo.rotation = this.angulo + Math.PI / 2 + giro
+
+    let pct = 1
+    if (naGrama(this.x)) pct *= FATOR_GRAMA
+    if (nitro) pct *= NITRO.fator
+    if (batida) pct *= BATIDA.fator
+    const d = this.percorrido % this.L
+    const curva = this.curvas[Math.floor(d / PX_POR_SEGMENTO) % this.curvas.length]
+    const p = this.input.activePointer
+    const dedo = p.isDown ? (p.x < W / 2 ? -1 : 1) : 0
+    this.x = moverLateral({ x: this.x, dedo, curva, pct, dt })
+    this.percorrido += VELOCIDADE_BASE * pct * dt
+    this.morros += curva * pct * dt * 40
+
+    this.fogo.setVisible(nitro)
+    this.theo.x = THEO.x + dedo * 14
+    this.theo.rotation = batida ? Math.sin(agora / 40) * 0.25 : dedo * 0.04
 
     for (const a of this.adversarios) atualizarAdversario(a, this.percorrido, dt, this.total)
+    this.desenhar()
+    this.pegarObjetos()
 
-    const volta = Math.floor(Math.max(this.percorrido, 0) / this.L)
-    for (const o of this.objetos) {
-      if (o.tipo === 'nitro') o.sprite.setVisible(o.voltaPega !== volta)
-      if (o.pego || o.voltaPega === volta || Phaser.Math.Distance.Between(o.sprite.x, o.sprite.y, theo.x, theo.y) > 70) continue
-      o.voltaPega = volta
-      this.pegar(o)
-    }
-
+    const volta = this.volta()
     if (volta >= 1 && !this.avisouUltima) this.ultimaVolta()
     this.textoVolta.setText(`${Math.min(volta + 1, VOLTAS)}/${VOLTAS}`)
     const posicao = 1 + this.adversarios.filter(a => a.pos > this.percorrido).length
     this.medalha.setText(MEDALHAS[posicao - 1])
-    this.posicionar()
+    this.atualizarMinimapa()
 
     if (this.percorrido >= this.total) this.chegar(posicao)
   }
 
-  // Adversários na linha e pontinhos do minimapa.
-  posicionar () {
+  desenhar () {
+    const { g, fundo, curvas, L } = this
+    const n = curvas.length
+    fundo.clear()
+    fundo.fillGradientStyle(0x4FC3F7, 0x4FC3F7, 0xB3E5FC, 0xB3E5FC, 1).fillRect(0, 0, W, HORIZONTE)
+    fundo.fillStyle(0x81C784, 1)
+    const desloc = ((this.morros + this.x * 40) % 360 + 360) % 360
+    for (let k = -1; k < 4; k++) fundo.fillEllipse(k * 360 - desloc + 180, HORIZONTE, 520, 180)
+    fundo.fillStyle(0x4CAF50, 1).fillRect(0, HORIZONTE, W, H - HORIZONTE)
+
+    // Estrada de perto para longe, com recorte vertical.
+    g.clear()
+    const camD = this.percorrido - ATRAS * PX_POR_SEGMENTO
+    const camSeg = camD / PX_POR_SEGMENTO
+    const base = Math.floor(camSeg)
+    const frac = camSeg - base
+    const camX = this.x * LARGURA
+    let x = 0
+    let dx = -curvas[((base % n) + n) % n] * frac
+    let maxY = H
+    this.telas = []
+    for (let k = 0; k < VISTA; k++) {
+      const i = (((base + k) % n) + n) % n
+      const z1 = (k - frac) * SEG
+      const p1 = z1 > 1 ? projetar(x - camX, z1) : null
+      const p2 = projetar(x + dx - camX, z1 + SEG)
+      this.telas.push(p1)
+      x += dx
+      dx += curvas[i]
+      if (!p1 || p2.y >= maxY) continue
+      const listra = Math.floor(i / 3) % 2
+      g.fillStyle(listra ? 0x43A047 : 0x4CAF50, 1).fillRect(0, p2.y, W, p1.y - p2.y + 1)
+      this.trapezio(p1, p2, -1.15, 1.15, listra ? 0xE53935 : 0xFFFFFF)
+      this.trapezio(p1, p2, -1, 1, i < 3 ? (i % 2 ? 0x222222 : 0xEEEEEE) : (listra ? 0x5F5F5F : 0x666666))
+      if (listra && i >= 3) for (const f of [-1 / 3, 1 / 3]) this.trapezio(p1, p2, f - 0.02, f + 0.02, 0xFFFFFF)
+      maxY = p2.y
+    }
+
+    // Enfeites, objetos e adversários: de longe para perto.
+    const itens = []
+    const alcance = (VISTA - 1) * PX_POR_SEGMENTO
+    const ponha = (dItem, desenho) => {
+      const dist = aFrente(dItem, camD, L)
+      if (dist < alcance) itens.push({ k: Math.floor(dist / PX_POR_SEGMENTO), desenho })
+    }
+    const volta = this.volta()
+    for (const e of this.enfeites) ponha(e.d, p => this.enfeite(e, p))
+    for (const o of this.objetos) if (!o.pego && !(o.tipo === 'nitro' && o.voltaPega === volta)) ponha(o.pos, p => this.objeto(o, p))
+    this.adversarios.forEach((a, i) => ponha(a.pos % L, p => desenharCarroTras(g, p.x + p.w * LATERAL[a.faixa], p.y, p.w * 0.55, { modelo: 'carrinho', cor: CORES_ADV[i] })))
+    itens.sort((a, b) => b.k - a.k)
+    for (const it of itens) {
+      const p = this.telas[it.k]
+      if (p) it.desenho(p)
+    }
+  }
+
+  // Faixa da estrada entre as posições laterais a e b (em meias larguras) dos dois cantos do segmento.
+  trapezio (p1, p2, a, b, cor) {
+    // +1 px embaixo: trechos vizinhos se sobrepõem, sem linha clara entre eles.
+    this.g.fillStyle(cor, 1).fillPoints([
+      { x: p1.x + p1.w * a, y: p1.y + 1 }, { x: p2.x + p2.w * a, y: p2.y },
+      { x: p2.x + p2.w * b, y: p2.y }, { x: p1.x + p1.w * b, y: p1.y + 1 }
+    ], true)
+  }
+
+  enfeite ({ x, tipo }, p) {
+    const { g } = this
+    const sx = p.x + p.w * x
+    const s = p.w
+    if (tipo === 'arvore') {
+      g.fillStyle(0x6D4C41, 1).fillRect(sx - s * 0.06, p.y - s * 0.45, s * 0.12, s * 0.45)
+      g.fillStyle(0x2E7D32, 1).fillCircle(sx, p.y - s * 0.7, s * 0.38)
+      g.fillStyle(0x43A047, 1).fillCircle(sx - s * 0.1, p.y - s * 0.8, s * 0.24)
+    } else if (tipo === 'pinheiro') {
+      g.fillStyle(0x6D4C41, 1).fillRect(sx - s * 0.05, p.y - s * 0.3, s * 0.1, s * 0.3)
+      g.fillStyle(0x1B5E20, 1).fillTriangle(sx - s * 0.32, p.y - s * 0.25, sx + s * 0.32, p.y - s * 0.25, sx, p.y - s * 1.1)
+    } else if (tipo === 'pedra') {
+      g.fillStyle(0x9E9E9E, 1).fillEllipse(sx, p.y - s * 0.1, s * 0.5, s * 0.3)
+      g.fillStyle(0xBDBDBD, 1).fillEllipse(sx - s * 0.06, p.y - s * 0.15, s * 0.25, s * 0.12)
+    } else if (tipo === 'tenda') {
+      g.fillStyle(0xE53935, 1).fillTriangle(sx - s * 0.4, p.y, sx + s * 0.4, p.y, sx, p.y - s * 0.55)
+      g.fillStyle(0xFFFFFF, 1).fillTriangle(sx - s * 0.12, p.y, sx + s * 0.12, p.y, sx, p.y - s * 0.55)
+    } else if (tipo === 'arquibancada') {
+      g.fillStyle(0x78909C, 1).fillRect(sx - s * 0.8, p.y - s * 0.7, s * 1.6, s * 0.7)
+      g.fillStyle(0xE53935, 1).fillRect(sx - s * 0.85, p.y - s * 0.82, s * 1.7, s * 0.12)
+      const cores = [0xFDD835, 0x1E88E5, 0xF06292, 0x43A047, 0xFFFFFF]
+      for (let l = 0; l < 3; l++) {
+        for (let c = 0; c < 8; c++) g.fillStyle(cores[(l * 3 + c) % cores.length], 1).fillCircle(sx - s * 0.7 + c * s * 0.2, p.y - s * 0.6 + l * s * 0.2, s * 0.06)
+      }
+    }
+  }
+
+  objeto ({ x, tipo }, p) {
+    const { g } = this
+    const sx = p.x + p.w * x
+    const s = p.w
+    if (tipo === 'estrela') {
+      const pts = []
+      for (let i = 0; i < 10; i++) {
+        const r = (i % 2 ? 0.08 : 0.2) * s
+        const a = -Math.PI / 2 + i * Math.PI / 5
+        pts.push({ x: sx + Math.cos(a) * r, y: p.y - s * 0.25 + Math.sin(a) * r })
+      }
+      g.fillStyle(0xFFD600, 1).fillPoints(pts, true).lineStyle(Math.max(1, s * 0.015), 0xF57F17, 1).strokePoints(pts, true)
+    } else if (tipo === 'nitro') {
+      g.fillStyle(0xFFEB3B, 1)
+      g.fillTriangle(sx - s * 0.2, p.y - s * 0.02, sx + s * 0.2, p.y - s * 0.02, sx, p.y - s * 0.14)
+      g.fillRect(sx - s * 0.07, p.y - s * 0.02, s * 0.14, s * 0.04)
+    } else if (tipo === 'cone') {
+      g.fillStyle(0xFF6D00, 1).fillTriangle(sx - s * 0.1, p.y, sx + s * 0.1, p.y, sx, p.y - s * 0.3)
+      g.fillStyle(0xFFFFFF, 1).fillRect(sx - s * 0.05, p.y - s * 0.16, s * 0.1, s * 0.04)
+    } else if (tipo === 'oleo') {
+      g.fillStyle(0x212121, 0.85).fillEllipse(sx, p.y - s * 0.02, s * 0.45, s * 0.08)
+    } else if (tipo === 'pneus') {
+      for (let i = 0; i < 3; i++) {
+        g.fillStyle(0x212121, 1).fillEllipse(sx, p.y - s * (0.04 + i * 0.08), s * 0.3, s * 0.1)
+        g.fillStyle(0xE53935, 1).fillEllipse(sx, p.y - s * (0.04 + i * 0.08), s * 0.12, s * 0.04)
+      }
+    }
+  }
+
+  volta () { return Math.floor(this.percorrido / this.L) }
+
+  pegarObjetos () {
+    const volta = this.volta()
+    const d = this.percorrido % this.L
+    for (const o of this.objetos) {
+      if (o.pego || o.voltaPega === volta || !colide(o.x, aFrente(o.pos, d, this.L), this.x)) continue
+      o.voltaPega = volta
+      if (o.tipo === 'estrela') {
+        o.pego = true // estrela não volta na 2ª volta
+        this.estrelas++
+        this.textoEstrelas.setText(String(this.estrelas))
+        tocar('estrela')
+      } else if (o.tipo === 'nitro') {
+        this.nitroAte = this.time.now + NITRO.ms
+        tocar('nitro')
+      } else if (this.time.now >= this.batidaAte) {
+        this.batidaAte = this.time.now + BATIDA.ms
+        tocar('batida')
+      }
+    }
+  }
+
+  atualizarMinimapa () {
     this.pontos.clear()
-    this.adversarios.forEach((a, i) => {
-      const p = naLinha(this.c, a.pos, LATERAL[a.faixa])
-      a.carro.setPosition(p.x, p.y).setRotation(p.angulo + Math.PI / 2)
-      this.pontos.fillStyle(CORES_ADV[i], 1).fillCircle(...this.mini(p.x, p.y), 7)
-    })
-    this.pontos.fillStyle(this.corTheo, 1).lineStyle(3, 0x000000, 1)
-    this.pontos.fillCircle(...this.mini(this.theo.x, this.theo.y), 11).strokeCircle(...this.mini(this.theo.x, this.theo.y), 11)
+    this.adversarios.forEach((a, i) => this.pontos.fillStyle(CORES_ADV[i], 1).fillCircle(...this.mini(a.pos), 7))
+    const [tx, ty] = this.mini(this.percorrido)
+    this.pontos.fillStyle(this.corTheo, 1).lineStyle(3, 0x000000, 1).fillCircle(tx, ty, 11).strokeCircle(tx, ty, 11)
   }
 
   ultimaVolta () {
     this.avisouUltima = true
     tocar('volta')
-    const aviso = this.add.text(360, 400, 'ÚLTIMA VOLTA!', { fontSize: '72px', fontFamily: 'sans-serif', fontStyle: 'bold', color: '#FFEB3B', stroke: '#000000', strokeThickness: 10 })
-      .setOrigin(0.5).setScrollFactor(0).setDepth(20).setScale(0)
+    const aviso = this.add.text(360, 420, 'ÚLTIMA VOLTA!', { fontSize: '72px', fontFamily: 'sans-serif', fontStyle: 'bold', color: '#FFEB3B', stroke: '#000000', strokeThickness: 10 })
+      .setOrigin(0.5).setDepth(20).setScale(0)
     this.tweens.add({ targets: aviso, scale: 1, duration: 300, ease: 'Back.out', hold: 1200, yoyo: true, onComplete: () => aviso.destroy() })
-  }
-
-  pegar (o) {
-    if (o.tipo === 'estrela') {
-      o.pego = true // estrela não volta na 2ª volta
-      this.estrelas++
-      this.textoEstrelas.setText(String(this.estrelas))
-      tocar('estrela')
-      this.tweens.add({ targets: o.sprite, scale: 2, alpha: 0, duration: 250 })
-    } else if (o.tipo === 'nitro') {
-      this.nitroAte = this.time.now + NITRO.ms
-      tocar('nitro')
-    } else if (this.time.now >= this.batidaAte) {
-      this.batidaAte = this.time.now + BATIDA.ms
-      tocar('batida')
-    }
   }
 
   chegar (posicao) {
     this.terminou = true
-    this.theo.fogo.setVisible(false)
+    this.fogo.setVisible(false)
     tocar('vitoria')
     this.confete(posicao === 1 ? 60 : 30)
-    const grande = (emoji, tamanho) => this.add.text(360, 560, emoji, { fontSize: `${tamanho}px`, fontFamily: FONTE }).setOrigin(0.5).setScrollFactor(0).setDepth(20)
+    const grande = (emoji, tamanho) => this.add.text(360, 560, emoji, { fontSize: `${tamanho}px`, fontFamily: FONTE }).setOrigin(0.5).setDepth(20)
     if (posicao === 1) {
       const trofeu = grande('🏆', 260).setScale(0)
       this.tweens.add({ targets: trofeu, scale: 1, duration: 500, ease: 'Back.out' })
@@ -263,7 +327,7 @@ export default class Corrida extends Phaser.Scene {
   confete (quantos) {
     const cores = [0xE53935, 0xFDD835, 0x1E88E5, 0x43A047, 0xF06292, 0xFFFFFF]
     for (let i = 0; i < quantos; i++) {
-      const p = this.add.rectangle(Phaser.Math.Between(0, 720), Phaser.Math.Between(-300, -20), 16, 26, Phaser.Utils.Array.GetRandom(cores)).setScrollFactor(0).setDepth(15)
+      const p = this.add.rectangle(Phaser.Math.Between(0, 720), Phaser.Math.Between(-300, -20), 16, 26, Phaser.Utils.Array.GetRandom(cores)).setDepth(15)
       this.tweens.add({ targets: p, y: 1350, angle: Phaser.Math.Between(180, 720), x: p.x + Phaser.Math.Between(-120, 120), duration: Phaser.Math.Between(1200, 2000) })
     }
   }
