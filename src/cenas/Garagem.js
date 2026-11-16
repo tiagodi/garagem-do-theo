@@ -50,6 +50,11 @@ export default class Garagem extends Phaser.Scene {
       this.saindo = true
       this.scene.start('Corrida')
     }, 110)
+    botao(this, 640, 420, '🚿', () => {
+      if (this.saindo) return
+      this.saindo = true
+      this.scene.start('LavaJato')
+    }, 110)
 
     this.input.on('pointermove', p => this.arrasto?.texto.setPosition(p.x, p.y))
     this.input.on('pointerup', p => this.soltarAdesivo(p))

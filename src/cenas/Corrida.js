@@ -257,7 +257,7 @@ export default class Corrida extends Phaser.Scene {
     } else {
       this.tweens.add({ targets: grande(MEDALHAS[posicao - 1], 220), scale: 1.2, duration: 400, yoyo: true, repeat: 1 })
     }
-    this.time.delayedCall(2000, () => this.scene.start('LavaJato', { posicao, estrelas: this.estrelas, corridaId: Date.now() }))
+    this.time.delayedCall(2000, () => this.scene.start('Presente', { posicao, estrelas: this.estrelas, corridaId: Date.now() }))
   }
 
   confete (quantos) {

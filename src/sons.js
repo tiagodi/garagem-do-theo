@@ -52,7 +52,8 @@ const SONS = {
   agua: c => ruido(c, { dur: 0.2, freqFiltro: 2500, vol: 0.12 }),
   vitoria: c => arpejo(c, [523, 659, 784, 1047]),
   presente: c => arpejo(c, [784, 988, 1175]),
-  volta: c => arpejo(c, [659, 880, 1047])
+  volta: c => arpejo(c, [659, 880, 1047]),
+  espuma: c => ruido(c, { dur: 0.15, freqFiltro: 600, vol: 0.15 })
 }
 
 export function tocar (nome) {
