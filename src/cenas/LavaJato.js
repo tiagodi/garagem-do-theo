@@ -25,6 +25,7 @@ export default class LavaJato extends Phaser.Scene {
     this.ultimo = null
     this.ultimoSom = 0
     this.ultimaDica = 0
+    this.ultimoMolhado = 0
     const estado = carregar()
     const modelo = porId(estado.carroAtual)?.valor ?? 'carrinho'
     const carro = criarCarro(this, CENTRO.x, CENTRO.y, modelo, visualDe(estado, estado.carroAtual), ESCALA)
@@ -107,6 +108,9 @@ export default class LavaJato extends Phaser.Scene {
 
   // Jato na lama sem espuma: a lama brilha molhada e a esponja pisca.
   dica (p) {
+    // O jato chama isto a cada quadro: no máximo um brilho a cada 100 ms.
+    if (this.time.now - this.ultimoMolhado < 100) return
+    this.ultimoMolhado = this.time.now
     const molhado = this.add.circle(p.x, p.y, RAIO, 0x4FC3F7, 0.35)
     this.tweens.add({ targets: molhado, alpha: 0, duration: 500, onComplete: () => molhado.destroy() })
     if (this.time.now - this.ultimaDica < 1200) return
